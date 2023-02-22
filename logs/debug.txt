@@ -1,0 +1,32 @@
+2023-02-21 23:02:59,554 - INFO - Regressor model Loaded. 74997221 trainable parameters.
+2023-02-21 23:02:59,554 - INFO - Regressor model Loaded. 74997221 trainable parameters.
+2023-02-21 23:02:59,554 - INFO - Loss weights:  {'verts': 1.0, 'joints3D': 1.0, 'joints2D': 0.1, 'pose_params': 0.1}
+2023-02-21 23:02:59,554 - INFO - Loss weights:  {'verts': 1.0, 'joints3D': 1.0, 'joints2D': 0.1, 'pose_params': 0.1}
+2023-02-21 23:03:23,454 - INFO - Regressor model Loaded. 74997221 trainable parameters.
+2023-02-21 23:03:23,455 - INFO - Loss weights:  {'verts': 1.0, 'joints3D': 1.0, 'joints2D': 0.1, 'pose_params': 0.1}
+2023-02-21 23:03:23,455 - INFO - Regressor model Loaded. 74997221 trainable parameters.
+2023-02-21 23:03:23,455 - INFO - Loss weights:  {'verts': 1.0, 'joints3D': 1.0, 'joints2D': 0.1, 'pose_params': 0.1}
+2023-02-21 23:03:36,249 - INFO - Metrics tracker initialised.
+2023-02-21 23:03:36,254 - INFO - ----------Epoch 0/99----0221230336--
+2023-02-21 23:03:42,884 - INFO - Metrics tracker initialised.
+2023-02-21 23:03:42,890 - INFO - ----------Epoch 0/99----0221230342--
+2023-02-21 23:04:48,608 - INFO - Regressor model Loaded. 74997221 trainable parameters.
+2023-02-21 23:04:48,608 - INFO - Loss weights:  {'verts': 1.0, 'joints3D': 1.0, 'joints2D': 0.1, 'pose_params': 0.1}
+2023-02-21 23:04:48,608 - INFO - Regressor model Loaded. 74997221 trainable parameters.
+2023-02-21 23:04:48,609 - INFO - Loss weights:  {'verts': 1.0, 'joints3D': 1.0, 'joints2D': 0.1, 'pose_params': 0.1}
+2023-02-22 13:30:09,419 - INFO - Regressor model Loaded. 74997221 trainable parameters.
+2023-02-22 13:30:09,419 - INFO - Regressor model Loaded. 74997221 trainable parameters.
+2023-02-22 13:30:09,420 - INFO - Loss weights:  {'verts': 1.0, 'joints3D': 1.0, 'joints2D': 0.1, 'pose_params': 0.1}
+2023-02-22 13:30:09,420 - INFO - Loss weights:  {'verts': 1.0, 'joints3D': 1.0, 'joints2D': 0.1, 'pose_params': 0.1}
+2023-02-22 13:30:13,150 - INFO - Metrics tracker initialised.
+2023-02-22 13:30:13,160 - INFO - ----------Epoch 0/99----0222133013--
+2023-02-22 13:30:13,256 - INFO - Metrics tracker initialised.
+2023-02-22 13:30:13,277 - INFO - ----------Epoch 0/99----0222133013--
+2023-02-22 13:37:07,563 - INFO - Regressor model Loaded. 74997221 trainable parameters.
+2023-02-22 13:37:07,563 - INFO - Loss weights:  {'verts': 1.0, 'joints3D': 1.0, 'joints2D': 0.1, 'pose_params': 0.1}
+2023-02-22 13:37:07,565 - INFO - Regressor model Loaded. 74997221 trainable parameters.
+2023-02-22 13:37:07,566 - INFO - Loss weights:  {'verts': 1.0, 'joints3D': 1.0, 'joints2D': 0.1, 'pose_params': 0.1}
+2023-02-22 13:37:10,127 - INFO - Metrics tracker initialised.
+2023-02-22 13:37:10,138 - INFO - ----------Epoch 0/99----0222133710--
+2023-02-22 13:37:11,273 - INFO - Metrics tracker initialised.
+2023-02-22 13:37:11,281 - INFO - ----------Epoch 0/99----0222133711--
