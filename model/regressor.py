@@ -156,7 +156,6 @@ class SingleInputRegressor(nn.Module):
         
         input_feats, _, _ = self.image_encoder(input)
         
-        
         #keep channel, compress HW
         if self.reginput_hw<8:
             input_feats = nn.AdaptiveAvgPool2d((self.reginput_hw, self.reginput_hw))(input_feats)

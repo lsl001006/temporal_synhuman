@@ -8,23 +8,21 @@ from dataload.dataloader import Build_Test_Dataloader
 from eval.test_hmr import testHMRImg, testHMRPr
 from utils.checkpoint_utils import load_ckpt_woSMPL
 
-
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', type=str, default='3')
-    parser.add_argument('--batch_size', type=int, default=128) #125 for mpi?
+    parser.add_argument('--gpu', type=str, default='2')
+    parser.add_argument('--batch_size', type=int, default=128) 
     parser.add_argument('--num_workers', type=int, default=4) 
-    parser.add_argument('--shuffle', type=int, default=1)
-    
+    parser.add_argument('--shuffle', type=int, default=1) 
     #model setting
     parser.add_argument('--gender',type=str, default='')
     parser.add_argument('--pr', type=str, default='bj') #ONLY support bj for now
     parser.add_argument('--cra', action='store_true')
     parser.add_argument('--reg_ch', type=int, default=512) 
-    parser.add_argument('--reg_hw', type=int, default=2) #[16,8,4,2,1]
+    parser.add_argument('--reg_hw', type=int, default=1) #[16,8,4,2,1]
 
     #checkpoints
-    parser.add_argument('--ckpt', type=str, default='ndebug')
+    parser.add_argument('--ckpt', type=str, default='debug')
     parser.add_argument('--start', type=int, default=0)
     parser.add_argument('--end', type=int, default=0)
 
@@ -32,7 +30,8 @@ def get_arguments():
     parser.add_argument('--img_crop_scale', type=float, default=0)
     parser.add_argument('--bbox_scale', type=float, default=1.2)
     #keys
-    parser.add_argument('--vis',  type=str, default='')
+    parser.add_argument('--visnum_per_batch',  type=int, default=0) #num visualized per batch
+    parser.add_argument('--vispr', action='store_true')
     parser.add_argument('--data', type=str, default='h36mp2')#h36mp2, h36mp1, 3dpw, mpi
     parser.add_argument('--wgender', action='store_true')#NOT valid for now
     parser.add_argument('--j14', action='store_true')#NOT valid for now
@@ -52,10 +51,13 @@ if __name__ == '__main__':
     if not test_w_pr:
         pr_path, img_path = '', ''
         args.batch_size = 1
+        print("Infer from scratch...")
     dataloader, withshape, metrics_track = Build_Test_Dataloader(args, pr_path, img_path)
-    
+
+    if args.visnum_per_batch:
+        args.shuffle = False #unify name of saved images
     # Model
-    regressor, smpl_model = Build_Model(args.batch_size*configs.SEQLEN, 
+    regressor, smpl_model = Build_Model(args.batch_size, 
                                         cra_mode=args.cra, 
                                         pr_mode=args.pr, 
                                         device=device, 
@@ -71,16 +73,21 @@ if __name__ == '__main__':
     
     # Test
     if args.start==0 and args.end==0: #choose latest epoch
-        state_dict = load_ckpt_woSMPL(f'{configs.CKPT_DIR}/{args.ckpt}', device, loadbest=True)
+        state_dict, ep = load_ckpt_woSMPL(f'{configs.CKPT_DIR}/{args.ckpt}', device, loadbest=True)
         if state_dict:
             regressor.load_state_dict(state_dict, strict=False) 
-            mpjpe_pa = test_HMR.test(dataloader, withshape, metrics_track, vis=args.vis)
+            mpjpe_pa = test_HMR.test(dataloader, withshape, metrics_track, eval_ep = ep)
+        
     else: #test with checkpoints from start to end
         metric_records = {}
         for ep in range(args.start, args.end):
-            state_dict = load_ckpt_woSMPL(f'{configs.CKPT_DIR}/{args.ckpt}', device, epoch=ep, loadbest=False)
+            state_dict, _ = load_ckpt_woSMPL(f'{configs.CKPT_DIR}/{args.ckpt}', device, epoch=ep, loadbest=False)
             if state_dict:
                 regressor.load_state_dict(state_dict, strict=False)
-                mpjpe_pa = test_HMR.test(dataloader, withshape, metrics_track, vis=args.vis)
+                mpjpe_pa = test_HMR.test(dataloader, withshape, metrics_track,  eval_ep = ep)
                 metric_records[ep] = mpjpe_pa
+            else:
+                continue
         print(metric_records)
+    
+    import ipdb; ipdb.set_trace()

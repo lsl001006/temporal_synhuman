@@ -1,5 +1,6 @@
 import os, argparse, logging, configs
 import torch
+import shutil
 
 from datetime import datetime
 from dataload.dataloader import Build_Train_Dataloader
@@ -9,47 +10,18 @@ from synthetic_train import my_train_rendering
 from synthesis import RenderGenerate
 import torch.distributed as dist
 
-#python run_mytrain.py --epochs 240 --batch_size 140 --lossvar --pr bj
-# def setup_DDP(backend="nccl", verbose=False):
-#     """
-#     We don't set ADDR and PORT in here, like:
-#         # os.environ['MASTER_ADDR'] = 'localhost'
-#         # os.environ['MASTER_PORT'] = '12355'
-#     Because program's ADDR and PORT can be given automatically at startup.
-#     E.g. You can set ADDR and PORT by using:
-#         python -m torch.distributed.launch --master_addr="192.168.1.201" --master_port=23456 ...
-
-#     You don't set rank and world_size in dist.init_process_group() explicitly.
-
-#     :param backend:
-#     :param verbose:
-#     :return:
-#     """
-#     rank = int(os.environ["RANK"])
-#     local_rank = int(os.environ["LOCAL_RANK"])
-#     world_size = int(os.environ["WORLD_SIZE"])
-#     # If the OS is Windows or macOS, use gloo instead of nccl
-#     dist.init_process_group(backend=backend)
-#     # set distributed device
-#     device = torch.device("cuda:{}".format(local_rank))
-#     if verbose:
-#         print(f"local rank: {local_rank}, global rank: {rank}, world size: {world_size}")
-#     return rank, local_rank, world_size, device
-
-
 #python train.py 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', type=str, default='0')
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--epochs_per_save', type=int, default=1)
     parser.add_argument('--optimizer', type=str, default='adam')
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--num_workers', type=int, default=12) #4->8s/iter, 6->7s/iter, 8->6.5s/iter
-    parser.add_argument('--local_rank', type=int, default=-1, help="DDP parameter, do not modify")
     
     parser.add_argument('--log', type=str, default='debug')
+    parser.add_argument('--save_command', action='store_true') # 保存训练sh文件
     parser.add_argument('--resume_from_epoch', type=str, default='') #NOT Veirified
     parser.add_argument('--resume_sametr', action='store_true') #NOT Veirified
     # parser.add_argument('--finetune', action='store_true') #NOT Support for now
@@ -78,8 +50,9 @@ def get_arguments():
 
 if __name__ == '__main__':
     args = get_arguments()
+    local_rank = int(os.environ["LOCAL_RANK"])
     dist.init_process_group(backend='nccl')
-    device = torch.device("cuda:{}".format(args.local_rank))
+    device = torch.device(f"cuda:{local_rank}")
     torch.manual_seed(0)
     torch.cuda.manual_seed_all(0)
 
@@ -92,28 +65,31 @@ if __name__ == '__main__':
         os.makedirs(configs.LOG_DIR)
     log_path= f'{configs.LOG_DIR}/{logfile}.txt'
     
+    
+    # Model save dir
     model_savedir = f'{configs.CKPT_DIR}/{args.log}'
     if not os.path.isdir(model_savedir):
         os.makedirs(model_savedir)
+    # copy train.sh to model_savedir
+    if os.path.exists('scripts/train.sh'):
+        shutil.copy('scripts/train.sh', model_savedir+'/train.sh')
+    else:
+        print('[Warning] Train Script is not saved!')
     #
     handlers = [logging.StreamHandler()]
     handlers.append(logging.FileHandler(log_path, mode='a'))
     logging.basicConfig(level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s', handlers=handlers,     
     )
-    
 
     # Run
-    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # logging.info(f'Device:{device}...GPU:{args.gpu}...')
-    # logging.info(args)
-    
     # DATA
     train_dataloader, val_dataloader = Build_Train_Dataloader(args.batch_size, 
                                                              num_workers=args.num_workers, 
                                                              valdata=args.valdata) 
     # MODEL
-    regressor, smpl_model = Build_Model(args, args.batch_size*configs.SEQLEN, #args.batch_size
+    regressor, smpl_model = Build_Model(args.batch_size*configs.SEQLEN, #args.batch_size
+                                        local_rank=local_rank,
                                         cra_mode=args.cra, 
                                         pr_mode=args.pr, 
                                         itersup=args.itersup, 
@@ -148,7 +124,7 @@ if __name__ == '__main__':
     # metrics_to_track = ['pves', 'pves_sc', 'pves_pa', 'pve-ts', 'pve-ts_sc', 'mpjpes', 'mpjpes_sc',
                     # 'mpjpes_pa', 'shape_mses', 'pose_mses', 'joints2D_l2es']
     train_render.trainLoop(num_epochs=args.epochs, epochs_per_save=args.epochs_per_save)
-
+    dist.destroy_process_group()
     # FINETUNE
     # if args.valdata:
     #     withshape = False if args.vt=='h36m' else True

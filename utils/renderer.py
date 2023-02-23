@@ -169,7 +169,7 @@ class P3dRenderer(nn.Module):
         pixel_normals = interpolate_face_attributes(
             fragments.pix_to_face, fragments.bary_coords, faces_normals
         )
-        return pixel_normals.squeeze()
+        return pixel_normals.squeeze(dim=-2)
 
 
 # Camera and joints/silhouette renderer

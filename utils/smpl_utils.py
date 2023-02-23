@@ -30,9 +30,9 @@ def smpl_forward(shape, pose, smpl_model=None):
         smpl_model = Build_SMPL(batch_size, pose.device)
 
     smpl_vertices, smpl_joints = smpl_model(body_pose=pose_rotmats.contiguous(), # [bs*seql, 23, 3, 3]
-                            global_orient=glob_rotmats.contiguous(), # [bs*seql, 1, 3, 3]
-                            betas=shape.contiguous(), #[bs, seq, 10]
-                            pose2rot=False)
+                                            global_orient=glob_rotmats.contiguous(), # [bs*seql, 1, 3, 3]
+                                            betas=shape.contiguous(), #[bs, seq, 10]
+                                            pose2rot=False)
     
     reposed_smpl_vertices, reposed_smpl_joints = smpl_model(betas=shape)
     

@@ -5,29 +5,28 @@ from .regressor_align import FuseAlignRegressor
 import torch
 
 import configs
-def Build_SMPL(args, batch_size,  gender=''):
+def Build_SMPL(local_rank, batch_size,  gender=''):
     # SMPL model
     if gender:
         smpl_model = SMPL(configs.SMPL_MODEL_DIR, batch_size=batch_size, gender=gender)
     else:
         smpl_model = SMPL(configs.SMPL_MODEL_DIR, batch_size=batch_size) # neutral gender
-    device = torch.device("cuda:{}".format(args.local_rank))
-    smpl_model = torch.nn.parallel.DistributedDataParallel(smpl_model.to(device),
-                                                            device_ids=[args.local_rank], 
-                                                            output_device=args.local_rank,
-                                                            find_unused_parameters=True)
+    device = torch.device("cuda:{}".format(local_rank))
     # smpl_model = nn.DataParallel(smpl_model)
     # smpl_model = nn.DataParallel(smpl_model, device_ids=[0,1]).to(device)
+    smpl_model = smpl_model.to(device)
     return smpl_model
 
-def Build_Model(args, batch_size, 
+def Build_Model(
+                batch_size, 
+                local_rank,
                 cra_mode=False, 
                 pr_mode='bj', 
                 itersup=False, 
                 reginput_ch=512, 
                 reginput_hw=1,  
                 gender=''):
-    smpl_model = Build_SMPL(args, batch_size,  gender=gender)
+    smpl_model = Build_SMPL(local_rank, batch_size,  gender=gender)
     
     if pr_mode=='bj':
         resnet_in_channels = [1, 17]
@@ -43,7 +42,7 @@ def Build_Model(args, batch_size,
         resnet_in_channels = [26, 17]
     elif pr_mode=='iuvj':
         resnet_in_channels = [3, 17]
-    device = torch.device("cuda:{}".format(args.local_rank))
+    device = torch.device("cuda:{}".format(local_rank))
     if cra_mode==True:
         regressor = FuseAlignRegressor(batch_size,
                 smpl_model,
@@ -65,12 +64,10 @@ def Build_Model(args, batch_size,
                                          reginput_ch=reginput_ch,
                                          reginput_hw=reginput_hw,
                                          encoddrop=False)
-    
+
     regressor = torch.nn.parallel.DistributedDataParallel(regressor.to(device), 
-                                                          device_ids=[args.local_rank], 
-                                                          output_device=args.local_rank,
+                                                          broadcast_buffers=False, 
                                                           find_unused_parameters=True)
-    # regressor = nn.DataParallel(regressor)
 
     num_params = count_parameters(regressor)
     logging.info(f"Regressor model Loaded. {num_params} trainable parameters.")

@@ -1,171 +1,255 @@
-
-import os, cv2, torch
+import os
+import torch
 import numpy as np
-import configs
-from utils.renderer import P3dRenderer
-from pytorch3d.structures import Meshes 
-from pytorch3d.renderer.cameras import OrthographicCameras
-from pytorch3d.renderer import (
-    MeshRenderer, 
-    MeshRasterizer, 
-    HardPhongShader,
-)
-from pytorch3d.renderer.mesh import Textures
-from pytorch3d.renderer.blending import hard_rgb_blend
 
-class VisRenderer(P3dRenderer):
-    def __init__(self, batch_size, device):
-        self.img_wh = configs.REGRESSOR_IMG_WH
-        self.batch_size = batch_size
+from model.model import Build_SMPL
+import eval.metrics as metrics
+from eval.predict_densepose import setup_densepose_silhouettes, predict_silhouette_densepose
+from eval.predict_joints2d import setup_j2d_predictor, predict_joints2D_new
+import utils.label_conversions as LABELCONFIG
+from utils.smpl_utils import smpl_forward
+from utils.proxyrep_utils import convert_to_proxyfeat_batch
+from utils.image_utils import crop_and_resize_iuv_joints2D_torch
+from .vis_prediction import VisMesh
+
+import sys, configs
+sys.path.append(f"{configs.DETECTRON2_PATH}/projects/DensePose")
+from densepose.vis.extractor import DensePoseResultExtractor
+
+class testHMRImg():
+    def __init__(self, 
+                regressor, 
+                smpl_model, 
+                device, 
+                args):
+        self.regressor = regressor
+        self.smpl_model = smpl_model
         self.device = device
-        #load Densepose
-        self.load_densepose(self.img_wh, batch_size, device)
-
-        self.camT = self.rectify_cam_T(None)
-        self.camT[:,2] = 5
-        self.camR = self.rectify_cam_R(None)
+        self.pr_mode = args.pr
+        self.pr_wh = configs.REGRESSOR_IMG_WH
+        self.eval_j14 = args.j14
+        self.batch_size = args.batch_size
+        if args.visnum_per_batch:
+            self.visdir = f'{configs.VIS_DIR}/{args.data}/{args.ckpt}'
+            self.visnum_per_batch = args.visnum_per_batch
+            self.vispr = args.vispr
         
-        #color
-        # batch_color = torch.tensor([1,1,1]).repeat(7829,1)
-        # self.colors = [batch_color.float().to(device) for _ in range(batch_size)] #(bs, 7829, 3) 
-        self.rgb_encoding = {'gt':[0,1,2], 'pred':[1,2,0]}
-
-    def get_camK_fast(self, pred_cam):
-        focal_length = pred_cam[:,0] #bs
-        t_x, t_y= -pred_cam[:,1]*focal_length, -pred_cam[:,2]*focal_length#bs
-        focal_length = focal_length[:,None, None]
-        t_x = t_x[:,None, None]
-        t_y = t_y[:,None, None]
-        fill_zeros = torch.zeros_like(t_x)
-        fill_ones = torch.ones_like(t_x)
-        #cam_K: (bs,3,3)
-        cam_K_row1 = torch.cat([focal_length,fill_zeros, t_x], dim=2)#(bs,1,3)
-        cam_K_row2 = torch.cat([fill_zeros, focal_length, t_y], dim=2)#(bs,1,3)
-        cam_K_row3 = torch.cat([fill_zeros, fill_zeros, fill_ones], dim=2)#(bs,1,3)
-
-        cam_K = torch.cat([cam_K_row1, cam_K_row2, cam_K_row3], dim=1)
-        return cam_K
-
-    def forward(self, vertices, pred_cam, key='pred'):
-        """
-        vertices: (bs, nv, 3)
-        pred_cam: (bs, 3)
-        """
-        unique_verts = [vertices[:,vid].cpu().numpy() for vid in self.to_1vertex_id] #(7829,bs,3)
-        unique_verts = torch.as_tensor(unique_verts).transpose(0,1).to(self.device) #(bs, 7829, 3)
-        verts_list = [unique_verts[nb] for nb in range(self.batch_size)] #(bs, 7829, 3)
-        #
+        if args.wgender: #only SSP3D has valid gender #NOT valid for now
+            self.smpl_model_male = Build_SMPL(args.batch_size, self.device, gender='male')
+            self.smpl_model_female = Build_SMPL(args.batch_size, self.device, gender='female')
+        self.wgender = args.wgender
         
-        mesh_batch = Meshes(verts=verts_list, faces=self.faces_list, textures = Textures(verts_rgb=self.IUVnorm_list)) #self.colors
-
-        camK = self.get_camK_fast(pred_cam)
-        cameras = OrthographicCameras(
-                focal_length=((self.focal_x, self.focal_y),),
-                principal_point=((self.t_x, self.t_y),),
-                R = self.cam_R,
-                T = self.cam_T,
-                device = self.device, 
-                in_ndc = False,
-                image_size=((-1, -1),)
-                # image_size=((img_wh, img_wh),)
-                )
-        
-        rasterizer = MeshRasterizer(cameras=cameras, raster_settings=self.raster_settings)
-        fragments = rasterizer(mesh_batch)
-        normal_map = self.get_pixel_normals(mesh_batch, fragments)
-        normalimage = 0.5+normal_map/2
-        normalimage = (255*normalimage.cpu().numpy()).astype('uint8')
-        normalimage = normalimage[:,:,self.rgb_encoding[key]]
-        # depth_map = fragments.zbuf.squeeze()
-        
-        # shader = HardPhongShader(device=self.device, cameras=cameras, blend_params=self.blendparam)  
-        # render_all = MeshRenderer(rasterizer=rasterizer, shader=shader)
-        # meshimage = render_all(mesh_batch)
-        # meshimage = (255*meshimage[0,:,:,:3].cpu().numpy()).astype('uint8')
-        # body_mask = (meshimage.sum(axis=2)>0).astype('int')  
-        colors = mesh_batch.sample_textures(fragments)#(BS, H, W, 1, 4)
-        images = hard_rgb_blend(colors, fragments, self.blendparam)# (BS, H, W, 4)
-        IUV = images[:,:,:,:3]#(b,h,w,3)
-        # import ipdb; ipdb.set_trace()
-        return normalimage, IUV.cpu().numpy()
+        self.set_detector2D(args)
 
 
-def fuse_mesh_img_batch(backimg, meshimg, I):
-    """
-    backimg: (bs, h, w, 3)
-    meshimg: (bs, h, w, 3)
-    I: (bs, h, w)
-    """
-    body_mask = (I>0).astype('uint8')
-    body_mask = np.expand_dims(body_mask, axis=3)
-    fuseimg =  body_mask*meshimg+(1-body_mask)*backimg
-    return fuseimg
-
-class VisMesh():
-    def __init__(self, vispath, batch_size, device, mesh_gt='r', mesh_pred='g', vis_proxy=False):
-        self.visdir = f'{configs.VIS_DIR}/{vispath}'
-        if not os.path.isdir(self.visdir):
-            os.makedirs(self.visdir)
-        
-        self.renderer= VisRenderer(batch_size, device=device)
-        #Dynamically updated
-        self.crop_img = None
-        self.whole_img = None #Require bbox for fusion
-
-
-    def forward_verts(self, pred_verts, target_verts, pred_cam_wp):
-        meshimg, IUV = self.renderer.forward(pred_verts, pred_cam_wp, key='pred')
-        if self.crop_img is not None:
-            meshimg = fuse_mesh_img_batch(self.crop_img, meshimg, IUV[:,:,:,0])
-        
-        if target_verts is not None:
-            meshimg2, IUV = self.renderer.forward(target_verts, pred_cam_wp, key='gt')
-            if self.crop_img is not None:
-                meshimg2 = fuse_mesh_img_batch(self.crop_img, meshimg, IUV[:,:,:,0])
-            meshimg = np.concatenate([meshimg, meshimg2], axis=2) #(bs, h, 2w, 3)
-        
-        
+    def set_detector2D(self, args):
+        # Set-up proxy representation predictors.
+        self.silhouette_predictor = setup_densepose_silhouettes()
+        self.extractor = DensePoseResultExtractor()
+        self.joints2D_predictor = setup_j2d_predictor()
+        # Record if 2D detection not good
+        self.skip_idx = []
+        self.black_idx = []
+        self.bbox_scale = args.bbox_scale
     
-
-    def fuse_mesh_wholeimg(self, images, bboxs): ##
-        if bboxs is not None:
-            x0, y0, x1, y1 = bboxs[0]
-            org_h, org_w =(y1-y0).item(), (x1-x0).item()
-            max_org_hw = max(org_h,org_w)
-            #target bbox
-            if org_h>org_w:
-                border_w = (org_h-org_w)//2 
-                border_h = 0
-            else:
-                border_w = 0
-                border_h = (org_w-org_h)//2
+    def get_proxy_rep(self, samples_batch):#batch_size=1
+        image = samples_batch['image'][0].numpy()
+        center = samples_batch['center'][0].numpy()
+        scale = samples_batch['scale'][0].item()
+        IUV = predict_silhouette_densepose(image, self.silhouette_predictor, self.extractor, center, scale)#(h,w,3) torch
+        joints2D = predict_joints2D_new(image, self.joints2D_predictor, center, scale)#(17,3) numpy
+        
+        if (IUV is None) or (joints2D is None):
+            self.skip_idx.append(samples_batch['n_sample'])
+            return None, None
+        else:
+            IUV, joints2D, cropped_img = crop_and_resize_iuv_joints2D_torch(IUV, 
+                                                                configs.REGRESSOR_IMG_WH, 
+                                                                joints2D=joints2D, 
+                                                                image=image, 
+                                                                bbox_scale_factor=self.bbox_scale)
+            if hasattr(self, 'vis'):
+                self.vis.crop_img = cropped_img
+            bodymask = (24*IUV[:,:,0]).round().cpu().numpy()
+            fg_ids = np.argwhere(bodymask != 0) 
+            if fg_ids.shape[0]<256:
+                self.black_idx.append(samples_batch['n_sample'])
+                return None, None
             
-            square_start_x = x0 - border_w
-            square_start_y = y0 - border_h
-            square_end_x = square_start_x + max_org_hw
-            square_end_y = square_start_y + max_org_hw
+            return IUV[None].to(self.device), torch.tensor(joints2D)[:,:2][None].to(self.device).int()
 
-
-            bbox_image = cv2.resize(normalimage, (max_org_hw, max_org_hw), interpolation = cv2.INTER_NEAREST)
-            # bbox_image = bbox_image[border_h:border_h+org_h, border_w:border_w+org_w, :]
-            normalimage = np.zeros_like(images)
+    def forward_batch(self, samples_batch):
+        IUV, joints2D = self.get_proxy_rep(samples_batch) #(bs,h,w,3),(bs,17,2) 
+        if IUV is None:
+            return None, None, None, None
+        proxy_rep = convert_to_proxyfeat_batch(IUV, joints2D)
+        #
+        if self.vispr and hasattr(self, 'vis'):
+            self.vis.iuv = IUV
+            self.vis.j2d = joints2D
+        #
+        with torch.no_grad():
+            if hasattr(self.regressor, 'add_channels'):
+                if torch.tensor(self.regressor.add_channels).bool().any().item():
+                    self.regressor.set_align_target_infer(IUV, joints2D)
             
-            body_bbox_mask = cv2.resize(body_mask, (max_org_hw, max_org_hw), interpolation = cv2.INTER_NEAREST)
-            # body_bbox_mask = body_bbox_mask[border_h:border_h+org_h, border_w:border_w+org_w]
-            body_mask = np.zeros_like(images[:,:,0])
-            #overpass border?  
-            img_h, img_w = images.shape[:2]
-            img_start_x = max(0, square_start_x)#>=0
-            img_start_y = max(0, square_start_y)
-            img_end_x = min(img_w, square_end_x)
-            img_end_y = min(img_h, square_end_y)
-
-            shift_start_x = min(0, square_start_x)#<=0
-            shift_start_y = min(0, square_start_y)
-            shift_end_x = img_w - max(img_w, square_end_x)
-            shift_end_y = img_h - max(img_h, square_end_y)
+            pred_cam_wp_list, pred_pose_list, pred_shape_list = self.regressor(proxy_rep)
+                    
+            _, pred_vertices, pred_joints_all, pred_reposed_vertices, _ = smpl_forward(
+                pred_shape_list[-1], 
+                pred_pose_list[-1],
+                self.smpl_model)
             
-            normalimage[img_start_y:img_end_y, img_start_x:img_end_x, :] = \
-                bbox_image[-shift_start_y:max_org_hw+shift_end_y, -shift_start_x:max_org_hw+shift_end_x, :]
-            body_mask[img_start_y:img_end_y, img_start_x:img_end_x] = \
-                body_bbox_mask[-shift_start_y:max_org_hw+shift_end_y, -shift_start_x:max_org_hw+shift_end_x]
+            pred_joints_h36m = pred_joints_all[:, LABELCONFIG.ALL_JOINTS_TO_H36M_MAP, :]
+            pred_joints_h36mlsp = pred_joints_h36m[:, LABELCONFIG.H36M_TO_J17, :]
+            
+        return pred_vertices, pred_reposed_vertices, pred_joints_h36mlsp, pred_cam_wp_list[-1]
+
+    def get_target(self, samples_batch):
+        if self.withshape:
+            target_pose = samples_batch['pose'].to(self.device).float()#bx72
+            target_shape = samples_batch['shape'].to(self.device).float()#bx10
+            _, target_vertices, joints_all, target_reposed_vertices, _ = smpl_forward(
+                target_shape, 
+                target_pose,
+                self.smpl_model)
+
+            target_joints_h36m = joints_all[:, LABELCONFIG.ALL_JOINTS_TO_H36M_MAP, :]
+            target_joints_h36mlsp = target_joints_h36m[:, LABELCONFIG.H36M_TO_J17, :]
+        else:
+            target_joints_h36mlsp = samples_batch['j17_3d'].to(self.device).float()
+            target_vertices, target_reposed_vertices = None, None
+        
+        return target_vertices, target_reposed_vertices, target_joints_h36mlsp
+
+    def update_metrics_batch(self, samples_batch, printt=False):
+        pred_vertices, pred_reposed_vertices, pred_joints_h36mlsp, pred_cam_wp = self.forward_batch(samples_batch)
+        if pred_vertices is None:
+            return
+        target_vertices, target_reposed_vertices, target_joints_h36mlsp = self.get_target(samples_batch)
+        if hasattr(self, 'vis'):
+            self.vis.forward_verts(pred_vertices, target_vertices, pred_cam_wp, samples_batch['n_sample'])
+
+        if self.eval_j14:
+            target_joints_h36mlsp = target_joints_h36mlsp[:, LABELCONFIG.J17_TO_J14, :]
+            pred_joints_h36mlsp = pred_joints_h36mlsp[:, LABELCONFIG.J17_TO_J14, :]
+        
+        # re-center
+        pred_joints_h36mlsp = pred_joints_h36mlsp - (pred_joints_h36mlsp[:,[2],:]+pred_joints_h36mlsp[:,[3],:])/2.
+        target_joints_h36mlsp = target_joints_h36mlsp - (target_joints_h36mlsp[:,[2],:]+target_joints_h36mlsp[:,[3],:])/2.
+        # no use?
+        # pred_vertices = pred_vertices - (pred_joints_h36mlsp[:,[2],:]+pred_joints_h36mlsp[:,[3],:])/2
+        # target_vertices = target_vertices - (target_joints_h36mlsp[:,[2],:]+target_joints_h36mlsp[:,[3],:])/2
+        
+        #metric
+        batch_size = pred_joints_h36mlsp.shape[0]
+        if 'mpjpe_pa' in self.metrics_track:
+            mpjpe_pa = metrics.cal_mpjpe_pa(pred_joints_h36mlsp.detach().cpu().numpy(), 
+                                            target_joints_h36mlsp.detach().cpu().numpy())
+            self.mpjpe_pa.update(mpjpe_pa, n=batch_size)
+            if printt:
+                print(f'mpjpe_pa for {self.mpjpe_pa.count}: {self.mpjpe_pa.average()}')
+        
+        if 'mpjpe_sc' in self.metrics_track:
+            mpjpe_sc = metrics.cal_mpjpe_sc(pred_joints_h36mlsp.detach().cpu().numpy(), 
+                                            target_joints_h36mlsp.detach().cpu().numpy())
+            self.mpjpe_sc.update(mpjpe_sc, n=batch_size)
+            if printt:
+                print(f'mpjpe_sc for {self.mpjpe_sc.count}: {self.mpjpe_sc.average()}')
+        
+        if 'mpjpe' in self.metrics_track:
+            mpjpe = metrics.cal_mpjpe(pred_joints_h36mlsp.detach().cpu().numpy(), 
+                                    target_joints_h36mlsp.detach().cpu().numpy())
+            self.mpjpe.update(mpjpe, n=batch_size)
+            if printt:
+                print(f'mpjpe for {self.mpjpe.count}: {self.mpjpe.average()}')
+
+        if 'pve-ts_sc' in self.metrics_track:
+            pve = metrics.cal_pve_ts_sc(pred_reposed_vertices.detach().cpu().numpy(), 
+                                        target_reposed_vertices.detach().cpu().numpy())
+            self.pve_t_sc.update(pve,  n=batch_size)
+            if printt:
+                print(f'pve_t_sc for {self.pve_t_sc.count}: {self.pve_t_sc.average()}') 
+
+        if 'pve' in self.metrics_track:
+            pve = metrics.cal_pve(pred_vertices.detach().cpu().numpy(), 
+                                target_vertices.detach().cpu().numpy())
+            self.pve.update(pve,  n=batch_size)
+            if printt:
+                print(f'pve for {self.pve.count}: {self.pve.average()}') 
+
+        if 'pve_pa' in self.metrics_track:
+            pve_pa = metrics.cal_pve_pa(pred_vertices.detach().cpu().numpy(), 
+                                        target_vertices.detach().cpu().numpy())
+            self.pve_pa.update(pve_pa,  n=batch_size)
+            if printt:
+                print(f'pve_pa for {self.pve_pa.count}: {self.pve_pa.average()}') 
+
+        if 'pck_pa' in self.metrics_track:
+            pck_pa, auc_pa = metrics.cal_pck_pa(pred_joints_h36mlsp.detach().cpu().numpy(), 
+                                                target_joints_h36mlsp.detach().cpu().numpy())
+            self.pck.update(pck_pa, n=batch_size)
+            self.auc.update(auc_pa, n=batch_size)
+            if printt:
+                print(f'pck_pa for {self.pck.count}: {self.pck.average()}')
+                print(f'auc_pa for {self.auc.count}: {self.auc.average()}')
+
+        return 
+
+    def test(self, dataloader, withshape, metrics_track, eval_ep, print_freq=100):
+        self.withshape = withshape
+        self.metrics_track = metrics_track
+        if hasattr(self, 'visdir'):
+            self.visdir = f'{self.visdir}_ep{eval_ep}'
+            if not os.path.isdir(self.visdir):
+                os.makedirs(self.visdir)
+            self.vis = VisMesh(self.visdir, self.batch_size, self.device, self.visnum_per_batch)
+
+        
+        self.mpjpe_pa = metrics.AverageMeter()
+        self.mpjpe_sc = metrics.AverageMeter()
+        self.mpjpe = metrics.AverageMeter()
+        self.pck = metrics.AverageMeter()
+        self.auc = metrics.AverageMeter()
+        self.pve = metrics.AverageMeter()
+        self.pve_pa = metrics.AverageMeter()
+        self.pve_t_sc = metrics.AverageMeter()
+
+        self.regressor.eval()
+        for n_sample, samples_batch in enumerate(dataloader):
+            samples_batch['n_sample'] = n_sample
+            self.update_metrics_batch(samples_batch, printt=(n_sample%print_freq==0))
+            
+        # Complete
+        if self.mpjpe_pa.count:  
+            print(f'mpjpe_pa for {self.mpjpe_pa.count}: {self.mpjpe_pa.average()}')
+        if self.mpjpe_sc.count:
+            print(f'mpjpe_sc for {self.mpjpe_sc.count}: {self.mpjpe_sc.average()}')
+        if self.mpjpe.count:
+            print(f'mpjpe for {self.mpjpe.count}: {self.mpjpe.average()}')
+        if self.pck.count:
+            print(f'pck for {self.pck.count}: {self.pck.average()}')
+        if self.auc.count:
+            print(f'auc for {self.auc.count}: {self.auc.average()}')
+        if self.pve_t_sc.count:
+            print(f'pve_t_sc for {self.pve_t_sc.count}: {self.pve_t_sc.average()}')  
+        if self.pve.count:
+            print(f'pve for {self.pve.count}: {self.pve.average()}')  
+        if self.pve_pa.count:
+            print(f'pve_pa for {self.pve_pa.count}: {self.pve_pa.average()}')  
+                     
+        return self.mpjpe_pa.average()
+
+class testHMRPr(testHMRImg):
+    def set_detector2D(self, args):
+        pass
+
+    def get_proxy_rep(self, samples_batch):
+        images = samples_batch['image'].numpy()
+        IUV = samples_batch['iuv'].to(self.device)
+        joints2D = samples_batch['j2d'].int().to(self.device)
+        
+        if hasattr(self, 'vis'):
+            self.vis.crop_img = images
+
+        return IUV, joints2D

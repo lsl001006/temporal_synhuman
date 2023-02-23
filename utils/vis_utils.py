@@ -5,6 +5,22 @@ import colorsys
 import sys
 import matplotlib.pyplot as plt
 
+def draw_j2d_batch(joints, images, H=256, W=256, addText=True):
+    """
+    Joints: (bs, njoints,2)
+    images: (bs, H, W, 3)
+    """
+    bs = joints.shape[0]
+    if images is not None:
+        assert bs == images.shape[0]
+        draw_images = images
+    else:
+        np.zeros((bs, H,W,3)).astype('uint8')
+    for b in range(bs):
+        draw_images[b] = saveKP2D(joints[b], None, draw_images[b], H=H, W=W, addText=addText)
+            
+    return draw_images
+
 def saveKP2D(keypoints, savePath, image=None, H=256, W=256, color=(0,255,0), addText=True, circle_size=5):
     if image is None:
         image = np.zeros((H,W,3)).astype('uint8')
@@ -21,6 +37,21 @@ def saveKP2D(keypoints, savePath, image=None, H=256, W=256, color=(0,255,0), add
     if savePath is not None:
         cv2.imwrite(savePath, drawimage)
     return drawimage
+
+def hsv_to_bgr_batch(hsv_ts, keep_background=True, background=[1.0,1.0,1.0]): #[bs,h,w,3]
+    BS, H, W, _ = hsv_ts.shape
+    hsv_ts = hsv_ts.view(-1,3)#[BHW,3]
+    hsv = hsv_ts.cpu().numpy().tolist()
+    rgb = [ colorsys.hsv_to_rgb(vert_hsv[0], vert_hsv[1], vert_hsv[2]) for vert_hsv in hsv]#[1,1,1]->[1,0,0]
+
+    rgb_ts = torch.tensor(rgb).to(hsv_ts.device)
+    if keep_background:
+        background = torch.tensor(background).to(hsv_ts.device)
+        rgb_ts[(hsv_ts==background).all(dim=1)] = background
+    bgr_ts = torch.stack([rgb_ts[:,2],rgb_ts[:,1],rgb_ts[:,0]], dim=1)
+    bgr_ts = bgr_ts.reshape(BS,H,W,3)
+    return bgr_ts
+
 
 def hsv_to_bgr(hsv_ts, keep_background=True, background=[1.0,1.0,1.0]): #[N,3]
     H, W, _ = hsv_ts.shape
@@ -102,6 +133,7 @@ def vis_bboxs(save_path, image, bboxs, gt_box=None, gt_center=None):
 def apply_colormap(image, vmin=None, vmax=None, cmap='viridis', cmap_seed=1):
     """
     Apply a matplotlib colormap to an image.
+
     This method will preserve the exact image size. `cmap` can be either a
     matplotlib colormap name, a discrete number, or a colormap instance. If it
     is a number, a discrete colormap will be generated based on the HSV
@@ -126,3 +158,4 @@ def apply_colormap(image, vmin=None, vmax=None, cmap='viridis', cmap_seed=1):
     cmap_ = plt.get_cmap(cmap)
     vis = cmap_(image, bytes=True)
     return vis
+

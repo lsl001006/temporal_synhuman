@@ -29,12 +29,12 @@ def load_ckpt_woSMPL(ckpt_dir, device, epoch=None, loadbest=True):
     if epoch is None:
         ckpt_files = os.listdir(ckpt_dir)
         if len(ckpt_files)==0:
-            return {}
+            return {}, None
         ckpt_epochs = [int(f[5:-4]) for f in ckpt_files] #'epochXXX.tar' -> 'XXX' 
         epoch = sorted(ckpt_epochs)[-1]    
     ckpt_path = f'{ckpt_dir}/epoch{epoch}.tar'
     if not os.path.exists(ckpt_path):
-        return {}
+        return {}, epoch
     print("Loading", ckpt_path)
     checkpoint = torch.load(ckpt_path, map_location=device)
     model_key = 'best_model_state_dict' if loadbest else 'model_state_dict' 
@@ -43,7 +43,7 @@ def load_ckpt_woSMPL(ckpt_dir, device, epoch=None, loadbest=True):
     for key, value in checkpoint[model_key].items():
         if not key.startswith('smpl_model'):
             new_state_dict[key] = value
-    return new_state_dict
+    return new_state_dict, epoch
 
 
 
