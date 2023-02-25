@@ -11,7 +11,7 @@ def smpl_forward(shape, pose, smpl_model=None):
     # pose_rotmats, glob_rotmats = convert_theta_to_rotmats(pose[:, 3:], pose[:, :3]) 
     # target_rotmats = torch.cat([glob_rotmats, pose_rotmats], dim=1)
     # Convert pred pose to rotation matrices
-    
+    # import pdb;pdb.set_trace()
     assert pose.shape[0] == shape.shape[0]
     assert pose.device == shape.device
     # 为保证shape维度和pose维度一致，使用将bs和seqlen两个维度合并

@@ -20,6 +20,7 @@ def get_arguments():
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--num_workers', type=int, default=12) #4->8s/iter, 6->7s/iter, 8->6.5s/iter
+    parser.add_argument('--debugging', action='store_true') # more info for debugging
     
     parser.add_argument('--log', type=str, default='debug')
     parser.add_argument('--save_command', action='store_true') # 保存训练sh文件

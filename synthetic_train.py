@@ -103,9 +103,10 @@ class my_train_rendering():
                 joints2d_no_occluded_coco=joints_dict["joints2d_no_occluded_coco"].clone(), #clone required?
                 pr_mode = self.args.pr)
             
-            # vis_j2d_occlusion_batch(target_IUV, target_joints2d_coco, target_joints2d_no_occluded_coco)
-            # import ipdb; ipdb.set_trace()
-            # print('Finish data preparation', datetime.now().strftime("%m%d%H%M%S"))
+        if self.args.debugging:
+            print('----inter_represent----')
+            print(f'shape:{inter_represent.shape}')
+            print('-----------------------')
         
         if self.args.cra:
             assert hasattr(self.regressor, 'add_channels')
@@ -116,6 +117,12 @@ class my_train_rendering():
         # regressor 将image_encoder和regressor封装在一起
         
         pred_cam_wp_list, pred_pose_list, pred_shape_list = self.regressor(inter_represent) # (pi, theta, beta) in paper 3.3
+        if self.args.debugging:
+            print('----After Regressor----')
+            print(f'pred_cam_wp_list:{pred_cam_wp_list[0].shape}, length:{len(pred_cam_wp_list)}')
+            print(f'pred_pose_list:{pred_pose_list[0].shape}, length:{len(pred_pose_list)}')
+            print(f'pred_shape_list:{pred_shape_list[0].shape}, length:{len(pred_shape_list)}')
+            print('-----------------------')
         """
         pred_cam_wp_list: [(bs*3)]
         pred_pose_list: [(bs*144)] 144=24*6
@@ -123,17 +130,23 @@ class my_train_rendering():
         """
         loop_nlist = np.arange(len(pred_cam_wp_list)).tolist() if is_train else [-1]
         total_loss = 0.
-        for nl in loop_nlist:
+        for index, nl in enumerate(loop_nlist):
             pred_cam_wp = pred_cam_wp_list[nl]
             pred_shape = pred_shape_list[nl]
             pred_pose = pred_pose_list[nl]
             
             # PREDICTED VERTICES AND JOINTS
             pred_pose_rotmats, pred_vertices, pred_joints_all, pred_reposed_vertices, _ = smpl_forward(
-                pred_shape, 
-                pred_pose,
-                self.renderSyn.smpl_model)
-            
+                                                                                                        pred_shape, 
+                                                                                                        pred_pose,
+                                                                                                        self.renderSyn.smpl_model)
+            if self.args.debugging:
+                print(f'----After {index}/{len(loop_nlist)} smpl_forward----')
+                print(f'pred_pose_rotmats:{pred_pose_rotmats.shape}')
+                print(f'pred_vertices:{pred_vertices.shape}')
+                print(f'pred_joints_all:{pred_joints_all.shape}')
+                print(f'pred_reposed_vertices:{pred_reposed_vertices.shape}')
+                print('-----------------------')
             """
             pred_pose_rotmats: b*24*3*3
             pred_vertices: b*6890*3
@@ -172,11 +185,13 @@ class my_train_rendering():
                 return pred_dict_for_loss, target_dict_for_loss, pred_reposed_vertices, vertices_dict["reposed_vertices"]
             
             #Cal loss
-            
-            # print(target_dict_for_loss['verts'].shape, pred_dict_for_loss['verts'].shape)
-            # print(target_dict_for_loss['joints3D'].shape, pred_dict_for_loss['joints3D'].shape)
-            # print(target_dict_for_loss['joints2D'].shape, pred_dict_for_loss['joints2D'].shape)
-            # print(target_dict_for_loss['pose_params_rot_matrices'].shape, pred_dict_for_loss['pose_params_rot_matrices'].shape)
+            if self.args.debugging:
+                print('-------- after rearrange --------')
+                print(target_dict_for_loss['verts'].shape, pred_dict_for_loss['verts'].shape)
+                print(target_dict_for_loss['joints3D'].shape, pred_dict_for_loss['joints3D'].shape)
+                print(target_dict_for_loss['joints2D'].shape, pred_dict_for_loss['joints2D'].shape)
+                print(target_dict_for_loss['pose_params_rot_matrices'].shape, pred_dict_for_loss['pose_params_rot_matrices'].shape)
+                print('----------------------------------')
             # import pdb;pdb.set_trace()
             loss, task_losses_dict = self.criterion(target_dict_for_loss, pred_dict_for_loss) 
             total_loss += loss
