@@ -3,7 +3,9 @@ import pickle, logging
 
 from .metrics import procrustes_analysis_batch, scale_and_translation_transform_batch
 from utils.joints_utils import undo_keypoint_normalisation
+import torch.distributed as dist
 
+logger = logging.getLogger()
 class LossMetricsTracker:
     """
     Tracks training and validation losses (both total and per-task) and metrics during
@@ -69,7 +71,8 @@ class LossMetricsTracker:
                 self.history[metric_type] = []
 
         self.loss_metric_sums = None
-        logging.info('Metrics tracker initialised.')
+        if dist.get_rank() == 0:
+            logger.info('Metrics tracker initialised.')
 
     def load_history(self, load_log_path, current_epoch):
         """
@@ -77,7 +80,7 @@ class LossMetricsTracker:
         to a log file. If per-task losses or metrics are missing from log file, fill with 0s.
         This is used if resuming a previous training run that was interrupted.
         """
-        with open(load_log_path, 'rb') as f:
+        with open(load_log_path[:-4]+'.pkl', 'rb') as f:
             history = pickle.load(f)
 
         history['train_losses'] = history['train_losses'][:current_epoch]
@@ -90,14 +93,14 @@ class LossMetricsTracker:
                 history[loss_type] = history[loss_type][:current_epoch]
             else:
                 history[loss_type] = [0.0] * current_epoch
-                logging.info(f"{loss_type} 'filled with zeros up to epoch' {current_epoch}")
+                logger.info(f"{loss_type} 'filled with zeros up to epoch' {current_epoch}")
 
         for metric_type in self.all_metrics_types:
             if metric_type in history.keys():
                 history[metric_type] = history[metric_type][:current_epoch]
             else:
                 history[metric_type] = [0.0] * current_epoch
-                logging.info(f"{metric_type}  'filled with zeros up to epoch'  {current_epoch}")
+                logger.info(f"{metric_type}  'filled with zeros up to epoch'  {current_epoch}")
         '''
         for key in history.keys():
             if len(history[key])!=81:
@@ -109,7 +112,7 @@ class LossMetricsTracker:
                     key,
                     str(current_epoch))
         '''
-        logging.info(f'Logs loaded from  {load_log_path}')
+        logger.info(f'Logs loaded from  {load_log_path}')
 
         return history
 
@@ -282,24 +285,27 @@ class LossMetricsTracker:
                     (self.loss_metric_sums[split+'_num_samples'] * num_per_sample))
 
         # logging.info end of epoch losses and metrics.
-        logging.info('Finished epoch.')
+        if dist.get_rank() == 0:
+            logger.info('Finished epoch.')
         if self.track_val:
-            logging.info('Train Loss: {:.5f}, Val Loss: {:.5f}'.format(self.history['train_losses'][-1],
+            logger.info('GPU:{} Train Loss: {:.5f}, Val Loss: {:.5f}'.format(dist.get_rank(), self.history['train_losses'][-1],
                                                             self.history['val_losses'][-1]))
         else:
-            logging.info('Train Loss: {:.5f}'.format(self.history['train_losses'][-1]))
+            
+            logger.info('Train Loss: {:.5f}'.format(self.history['train_losses'][-1]))
         for metric in self.metrics_to_track:
             if self.track_val:
-                logging.info('Train {}: {:.5f}, Val {}: {:.5f}'.format(metric,
-                                                            self.history['train_'+metric][-1],
-                                                            metric,
-                                                            self.history['val_'+metric][-1]))
+                logger.info('GPU:{} Train {}: {:.5f}, Val {}: {:.5f}'.format(dist.get_rank(),
+                                                                             metric,
+                                                                            self.history['train_'+metric][-1],
+                                                                            metric,
+                                                                            self.history['val_'+metric][-1]))
             else:
-                logging.info('Train {}: {:.5f}'.format(metric,
+                logger.info('Train {}: {:.5f}'.format(metric,
                                                         self.history['train_'+metric][-1]))
 
         # Dump history to log file
-        with open(self.log_path, 'wb') as f_out:
+        with open(self.log_path[:-4]+'.pkl', 'wb') as f_out:
             pickle.dump(self.history, f_out)
 
     def determine_save_model_weights_this_epoch(self, save_val_metrics, best_epoch_val_metrics):

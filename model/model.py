@@ -3,8 +3,11 @@ from .smpl_official import SMPL
 from .regressor import SingleInputRegressor
 from .regressor_align import FuseAlignRegressor
 import torch
+import torch.distributed as dist
 
 import configs
+logger = logging.getLogger()
+
 def Build_SMPL(local_rank, batch_size,  gender=''):
     # SMPL model
     if gender:
@@ -17,15 +20,15 @@ def Build_SMPL(local_rank, batch_size,  gender=''):
     smpl_model = smpl_model.to(device)
     return smpl_model
 
-def Build_Model(
-                batch_size, 
+def Build_Model(batch_size, 
                 local_rank,
                 cra_mode=False, 
                 pr_mode='bj', 
                 itersup=False, 
                 reginput_ch=512, 
                 reginput_hw=1,  
-                gender=''):
+                gender='',
+                phase='train'):
     smpl_model = Build_SMPL(local_rank, batch_size,  gender=gender)
     
     if pr_mode=='bj':
@@ -64,13 +67,16 @@ def Build_Model(
                                          reginput_ch=reginput_ch,
                                          reginput_hw=reginput_hw,
                                          encoddrop=False)
-
-    regressor = torch.nn.parallel.DistributedDataParallel(regressor.to(device), 
+    if phase == 'train':
+        regressor = torch.nn.parallel.DistributedDataParallel(regressor.to(device), 
                                                           broadcast_buffers=False, 
                                                           find_unused_parameters=True)
+    elif phase=='test':
+        regressor = regressor.to(device)
 
     num_params = count_parameters(regressor)
-    logging.info(f"Regressor model Loaded. {num_params} trainable parameters.")
+    if dist.get_rank() == 0:
+        logger.info(f"Regressor model Loaded. {num_params} trainable parameters.")
     
     return regressor, smpl_model
 

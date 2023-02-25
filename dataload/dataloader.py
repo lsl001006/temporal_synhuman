@@ -43,7 +43,7 @@ def Build_Test_Dataloader(args, pr_path='', img_path=''):
         withshape = True
         metrics= ['mpjpe_pa', 'pve-ts_sc']
     elif args.data == '3dpw':
-        dataset = TestPr_3DPW(img_path, pr_path) if pr_exist else TestImg_3DPW(crop=args.img_crop_scale)
+        dataset = TestPr_3DPW(img_path, pr_path, configs.SEQLEN) if pr_exist else TestImg_3DPW(crop=args.img_crop_scale)
         withshape = True
         metrics = ['mpjpe_pa','pve']#['mpjpe','mpjpe_sc', 'mpjpe_pa', 'pve']      
     elif args.data == 'mpi':
@@ -54,7 +54,7 @@ def Build_Test_Dataloader(args, pr_path='', img_path=''):
     dataloader = DataLoader(dataset, 
                             batch_size=args.batch_size, 
                             shuffle=args.shuffle,
-                            drop_last=False, 
+                            drop_last=True, 
                             num_workers=args.num_workers, 
                             pin_memory=True)
 

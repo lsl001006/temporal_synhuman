@@ -14,6 +14,7 @@ from utils.smpl_utils import smpl_forward
 from einops import rearrange
 import torch.distributed as dist
 
+logger = logging.getLogger()
 # from smplx.lbs import batch_rodrigues
 # from utils.rigid_transform_utils import rot6d_to_rotmat
 
@@ -60,7 +61,8 @@ class my_train_rendering():
         """
         if args.resume_from_epoch:
             checkpoint_path =  f'{model_savedir}/epoch{args.resume_from_epoch}.tar'
-            logging.info(f'Resuming from: {checkpoint_path}')
+            if dist.get_rank() == 0:
+                logger.info(f'Resuming from: {checkpoint_path}')
             checkpoint = torch.load(checkpoint_path, map_location=self.device)
             self.regressor.load_state_dict(checkpoint['model_state_dict']) #not best????
             self.start_epoch, best_epoch, best_model_wts, self.best_epoch_val_metrics = \
@@ -92,8 +94,9 @@ class my_train_rendering():
                                             samples_batch['shape'].squeeze().to(self.device), #bx16x10
                                             is_train)
 
-            # FINAL INPUT PROXY REPRESENTATION GENERATION WITH JOINT HEATMAPS
+          # FINAL INPUT PROXY REPRESENTATION GENERATION WITH JOINT HEATMAPS
             # 这一步只传入了IUV和joints2d, 在函数内部处理joints2d_heatmap
+            
             inter_represent = convert_to_proxyfeat_batch(
                 iuv_dict["aug_iuv"], 
                 joints_dict["aug_joints2d_coco"],
@@ -118,8 +121,6 @@ class my_train_rendering():
         pred_pose_list: [(bs*144)] 144=24*6
         pred_shape_list: [(bs*10)]
         """
-        
-
         loop_nlist = np.arange(len(pred_cam_wp_list)).tolist() if is_train else [-1]
         total_loss = 0.
         for nl in loop_nlist:
@@ -186,9 +187,7 @@ class my_train_rendering():
     def trainEpoch(self):
         # print('Start training', datetime.now().strftime("%m%d%H%M%S"))
         for niter, samples_batch in enumerate(tqdm(self.train_dataloader)):
-            # if niter>0:
-            #     break
-            # import pdb;pdb.set_trace()
+            
             totalloss, task_losses_dict, pred_dict_for_loss, target_dict_for_loss, pred_reposed_vertices, target_reposed_vertices \
                 = self.forward_function(samples_batch, is_train=True)
 
@@ -226,15 +225,17 @@ class my_train_rendering():
         best_model_wts = copy.deepcopy(self.regressor.state_dict())
 
         for epoch in range(self.start_epoch, num_epochs):
-            logging.info(f'----------Epoch {epoch}/{num_epochs-1}----{datetime.now().strftime("%m%d%H%M%S")}--')
+            if dist.get_rank() == 0:
+                logger.info(f'----------Epoch {epoch}/{num_epochs-1}----{datetime.now().strftime("%m%d%H%M%S")}--')
             if self.scheduler is not None:
-                logging.info(f'LR:{self.scheduler.get_last_lr()}------')
+                print(f'LR:{self.scheduler.get_last_lr()}------')
             self.metrics_tracker.initialise_loss_metric_sums()
             self.regressor.train()
             self.trainEpoch()
             if self.scheduler is not None:
                 self.scheduler.step()
-            logging.info(f'Validation.....{datetime.now().strftime("%m%d%H%M%S")}')
+            if dist.get_rank() == 0:
+                logger.info(f'Validation.....{datetime.now().strftime("%m%d%H%M%S")}')
             self.regressor.eval()
             self.validate()
             #UPDATING LOSS AND METRICS HISTORY
@@ -249,8 +250,8 @@ class my_train_rendering():
                 
                 best_model_wts = copy.deepcopy(self.regressor.state_dict())
                 best_epoch = epoch
-                logging.info("Best model weights updated!")
-            logging.info(f"Best epoch val metrics updated to {self.best_epoch_val_metrics}")
+                logger.info("Best model weights updated!")   
+            logger.info(f"Best epoch val metrics updated to {self.best_epoch_val_metrics}")
             if epoch % epochs_per_save == 0 and dist.get_rank() == 0:
                 # Saving current epoch num, best epoch num, best validation metrics (occurred in best
                 # epoch num), current regressor state_dict, best regressor state_dict, current
@@ -263,9 +264,9 @@ class my_train_rendering():
                             'optimiser_state_dict': self.optimiser.state_dict(),
                             'criterion_state_dict': self.criterion.state_dict()}
                 torch.save(save_dict, f'{self.model_savedir}/epoch{epoch}.tar')
-                logging.info(f'Model saved! Best Val Metrics:{self.best_epoch_val_metrics}, epoch{best_epoch}')
-
-        logging.info(f'Training Completed. Best Val Metrics:{self.best_epoch_val_metrics}')
+                logger.info(f'Model saved! Best Val Metrics:{self.best_epoch_val_metrics} at epoch{best_epoch}')
+        if dist.get_rank() == 0:
+            logger.info(f'Training Completed. Best Val Metrics:{self.best_epoch_val_metrics}')
 
         self.regressor.load_state_dict(best_model_wts)
 

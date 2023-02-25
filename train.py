@@ -10,6 +10,7 @@ from synthetic_train import my_train_rendering
 from synthesis import RenderGenerate
 import torch.distributed as dist
 
+
 #python train.py 
 def get_arguments():
     parser = argparse.ArgumentParser()
@@ -55,34 +56,38 @@ if __name__ == '__main__':
     device = torch.device(f"cuda:{local_rank}")
     torch.manual_seed(0)
     torch.cuda.manual_seed_all(0)
-
+    
     # SET UP LOG  
     if args.log=='debug':
         logfile = f'debug'
     else:
         logfile = f'{args.log}-{datetime.now().strftime("%m%d%H%M%S")}'
     if not os.path.isdir(configs.LOG_DIR):
-        os.makedirs(configs.LOG_DIR)
+        os.makedirs(configs.LOG_DIR, exist_ok=True)
     log_path= f'{configs.LOG_DIR}/{logfile}.txt'
     
     
     # Model save dir
     model_savedir = f'{configs.CKPT_DIR}/{args.log}'
     if not os.path.isdir(model_savedir):
-        os.makedirs(model_savedir)
+        os.makedirs(model_savedir, exist_ok=True)
+    
     # copy train.sh to model_savedir
     if os.path.exists('scripts/train.sh'):
         shutil.copy('scripts/train.sh', model_savedir+'/train.sh')
     else:
         print('[Warning] Train Script is not saved!')
     #
-    handlers = [logging.StreamHandler()]
-    handlers.append(logging.FileHandler(log_path, mode='a'))
     logging.basicConfig(level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s', handlers=handlers,     
-    )
+                        format="%(asctime)s - %(name)s - %(message)s",
+                        datefmt='%d-%b-%y %H:%M:%S',
+                        force=True,
+                        handlers=[logging.FileHandler(log_path),
+                                logging.StreamHandler()])
 
     # Run
+    
+    
     # DATA
     train_dataloader, val_dataloader = Build_Train_Dataloader(args.batch_size, 
                                                              num_workers=args.num_workers, 
@@ -94,7 +99,8 @@ if __name__ == '__main__':
                                         pr_mode=args.pr, 
                                         itersup=args.itersup, 
                                         reginput_ch=args.reg_ch,
-                                        reginput_hw=args.reg_hw)
+                                        reginput_hw=args.reg_hw,
+                                        phase='train')
     
     # LOSS
     criterion, losses_to_track = Build_Loss(var=args.lossvar, # 是否启用loss变体

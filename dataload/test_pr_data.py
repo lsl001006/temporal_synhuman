@@ -3,6 +3,7 @@ import numpy as np
 from torch.utils.data import Dataset
 import configs
 import utils.label_conversions as LABELCONFIG
+import torch
 
 def filter_orgdata_with_pr(orgfile_list, imgpath, prpath):
     used_idx = []
@@ -77,10 +78,11 @@ class TestPr_MPI3DHP(TestPr_H36M):
         self.num_samples = len(used_idx)
 
 class TestPr_3DPW(Dataset):
-    def __init__(self, imgpath, prpath, gtfile=configs.D3PW_GT):
+    def __init__(self, imgpath, prpath, seqlen, gtfile=configs.D3PW_GT):
         data =  np.load(gtfile, allow_pickle=True)
         self.pose = data['pose']
         self.shape = data['shape']
+        self.seqlen = seqlen
         imgfiles = data['imgname'].tolist()
         used_idx, self.imgfiles, self.prfiles = filter_orgdata_with_pr(imgfiles, imgpath, prpath)
 
@@ -93,22 +95,26 @@ class TestPr_3DPW(Dataset):
         # self.scales = data['scale']*200 #35515
     
     def __len__(self):
-        return self.num_samples
+        return self.num_samples//self.seqlen
 
     def __getitem__(self, index):
+        index = index*self.seqlen
         #GT
-        pose = self.pose[index]
-        shape = self.shape[index]
-        #
-        imgname = self.imgfiles[index]
-        image = cv2.imread(imgname)
-        data = np.load(self.prfiles[index], allow_pickle=True)
-        iuv = data['iuv'] #(imgh, imgw, 3)
-        j2d = data['j2d'] #(17,3)
-        
-        return {'image':image,
-                'iuv': iuv,
-                'j2d': j2d,
+        pose = self.pose[index:index+self.seqlen]
+        shape = self.shape[index:index+self.seqlen]
+        # add Seqlen
+        images, iuvs, j2ds = [], [], []
+        for j in range(self.seqlen):
+            data = np.load(self.prfiles[index+j], allow_pickle=True)
+            iuvs.append(data['iuv']) #(imgh, imgw, 3)
+            j2ds.append(data['j2d']) #(17,3)
+            images.append(cv2.imread(self.imgfiles[index+j]))
+        iuvs = np.stack(iuvs, axis=0)
+        j2ds = np.stack(j2ds, axis=0)
+        images = np.stack(images, axis=0)
+        return {'image':images,
+                'iuv': iuvs,
+                'j2d': j2ds,
                 'pose': pose,
                 'shape': shape}
 

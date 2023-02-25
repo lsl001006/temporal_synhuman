@@ -8,6 +8,7 @@ from dataload.dataloader import Build_Test_Dataloader
 from eval.test_hmr import testHMRImg, testHMRPr
 from utils.checkpoint_utils import load_ckpt_woSMPL
 
+
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, default='2')
@@ -19,7 +20,7 @@ def get_arguments():
     parser.add_argument('--pr', type=str, default='bj') #ONLY support bj for now
     parser.add_argument('--cra', action='store_true')
     parser.add_argument('--reg_ch', type=int, default=512) 
-    parser.add_argument('--reg_hw', type=int, default=1) #[16,8,4,2,1]
+    parser.add_argument('--reg_hw', type=int, default=2) #[16,8,4,2,1]
 
     #checkpoints
     parser.add_argument('--ckpt', type=str, default='debug')
@@ -30,7 +31,7 @@ def get_arguments():
     parser.add_argument('--img_crop_scale', type=float, default=0)
     parser.add_argument('--bbox_scale', type=float, default=1.2)
     #keys
-    parser.add_argument('--visnum_per_batch',  type=int, default=0) #num visualized per batch
+    parser.add_argument('--visnum_per_batch',  type=int, default=1) #num visualized per batch
     parser.add_argument('--vispr', action='store_true')
     parser.add_argument('--data', type=str, default='h36mp2')#h36mp2, h36mp1, 3dpw, mpi
     parser.add_argument('--wgender', action='store_true')#NOT valid for now
@@ -41,8 +42,7 @@ def get_arguments():
 
 if __name__ == '__main__':
     args = get_arguments()
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
-    device = torch.device("cuda:0")
+    device = torch.device(f"cuda:{args.gpu}")
     
     # Data
     pr_path = fetch_processed_pr_path(args.data, args.img_crop_scale, args.bbox_scale)
@@ -53,18 +53,20 @@ if __name__ == '__main__':
         args.batch_size = 1
         print("Infer from scratch...")
     dataloader, withshape, metrics_track = Build_Test_Dataloader(args, pr_path, img_path)
+    print('Data loaded!')
 
     if args.visnum_per_batch:
         args.shuffle = False #unify name of saved images
     # Model
-    regressor, smpl_model = Build_Model(args.batch_size, 
+    regressor, smpl_model = Build_Model(args.batch_size*configs.SEQLEN, 
+                                        local_rank=args.gpu,
                                         cra_mode=args.cra, 
                                         pr_mode=args.pr, 
-                                        device=device, 
                                         itersup=0, 
                                         reginput_ch=args.reg_ch,
-                                        reginput_hw=args.reg_hw)
-
+                                        reginput_hw=args.reg_hw,
+                                        phase='test')
+    print('Model initialized')
     # Initialize 
     if test_w_pr:
         test_HMR = testHMRPr(regressor, smpl_model, device, args)
@@ -81,6 +83,7 @@ if __name__ == '__main__':
     else: #test with checkpoints from start to end
         metric_records = {}
         for ep in range(args.start, args.end):
+            print('current epoch:', ep)
             state_dict, _ = load_ckpt_woSMPL(f'{configs.CKPT_DIR}/{args.ckpt}', device, epoch=ep, loadbest=False)
             if state_dict:
                 regressor.load_state_dict(state_dict, strict=False)
@@ -90,4 +93,4 @@ if __name__ == '__main__':
                 continue
         print(metric_records)
     
-    import ipdb; ipdb.set_trace()
+    

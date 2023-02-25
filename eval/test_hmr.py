@@ -11,6 +11,7 @@ from utils.smpl_utils import smpl_forward
 from utils.proxyrep_utils import convert_to_proxyfeat_batch
 from utils.image_utils import crop_and_resize_iuv_joints2D_torch
 from .vis_prediction import VisMesh
+from einops import rearrange
 
 import sys, configs
 sys.path.append(f"{configs.DETECTRON2_PATH}/projects/DensePose")
@@ -28,7 +29,7 @@ class testHMRImg():
         self.pr_mode = args.pr
         self.pr_wh = configs.REGRESSOR_IMG_WH
         self.eval_j14 = args.j14
-        self.batch_size = args.batch_size
+        self.batch_size = args.batch_size*configs.SEQLEN
         if args.visnum_per_batch:
             self.visdir = f'{configs.VIS_DIR}/{args.data}/{args.ckpt}'
             self.visnum_per_batch = args.visnum_per_batch
@@ -80,8 +81,10 @@ class testHMRImg():
 
     def forward_batch(self, samples_batch):
         IUV, joints2D = self.get_proxy_rep(samples_batch) #(bs,h,w,3),(bs,17,2) 
+        
         if IUV is None:
             return None, None, None, None
+        
         proxy_rep = convert_to_proxyfeat_batch(IUV, joints2D)
         #
         if self.vispr and hasattr(self, 'vis'):
@@ -102,6 +105,7 @@ class testHMRImg():
             
             pred_joints_h36m = pred_joints_all[:, LABELCONFIG.ALL_JOINTS_TO_H36M_MAP, :]
             pred_joints_h36mlsp = pred_joints_h36m[:, LABELCONFIG.H36M_TO_J17, :]
+            
             
         return pred_vertices, pred_reposed_vertices, pred_joints_h36mlsp, pred_cam_wp_list[-1]
 
@@ -124,6 +128,13 @@ class testHMRImg():
 
     def update_metrics_batch(self, samples_batch, printt=False):
         pred_vertices, pred_reposed_vertices, pred_joints_h36mlsp, pred_cam_wp = self.forward_batch(samples_batch)
+        """
+        pred_vertices         bs*seql, 6890, 3
+        pred_reposed_vertices bs*seql, 6890, 3
+        pred_joints_h36mlsp   bs*seql, 17, 3
+        pred_cam_wp           bs*seql, 3
+        """
+        
         if pred_vertices is None:
             return
         target_vertices, target_reposed_vertices, target_joints_h36mlsp = self.get_target(samples_batch)
@@ -193,10 +204,12 @@ class testHMRImg():
             if printt:
                 print(f'pck_pa for {self.pck.count}: {self.pck.average()}')
                 print(f'auc_pa for {self.auc.count}: {self.auc.average()}')
+        
+        
 
         return 
 
-    def test(self, dataloader, withshape, metrics_track, eval_ep, print_freq=100):
+    def test(self, dataloader, withshape, metrics_track, eval_ep, print_freq=10):
         self.withshape = withshape
         self.metrics_track = metrics_track
         if hasattr(self, 'visdir'):
@@ -218,7 +231,9 @@ class testHMRImg():
         self.regressor.eval()
         for n_sample, samples_batch in enumerate(dataloader):
             samples_batch['n_sample'] = n_sample
+            print(f'----idx:{n_sample}----')
             self.update_metrics_batch(samples_batch, printt=(n_sample%print_freq==0))
+        
             
         # Complete
         if self.mpjpe_pa.count:  
@@ -248,6 +263,10 @@ class testHMRPr(testHMRImg):
         images = samples_batch['image'].numpy()
         IUV = samples_batch['iuv'].to(self.device)
         joints2D = samples_batch['j2d'].int().to(self.device)
+        
+        IUV = rearrange(IUV, 'b1 b2 h w c -> (b1 b2) h w c')
+        joints2D = rearrange(joints2D, 'b1 b2 a b -> (b1 b2) a b')
+        images = rearrange(images, 'b1 b2 h w c -> (b1 b2) h w c' )
         
         if hasattr(self, 'vis'):
             self.vis.crop_img = images

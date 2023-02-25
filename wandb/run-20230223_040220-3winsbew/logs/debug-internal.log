@@ -1,0 +1,106 @@
+2023-02-23 04:02:20,968 INFO    StreamThr :1521452 [internal.py:wandb_internal():87] W&B internal server running at pid: 1521452, started at: 2023-02-23 04:02:20.966877
+2023-02-23 04:02:20,969 DEBUG   HandlerThread:1521452 [handler.py:handle_request():144] handle_request: status
+2023-02-23 04:02:20,969 INFO    WriterThread:1521452 [datastore.py:open_for_write():85] open: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/run-3winsbew.wandb
+2023-02-23 04:02:20,971 DEBUG   SenderThread:1521452 [sender.py:send():336] send: header
+2023-02-23 04:02:20,989 DEBUG   SenderThread:1521452 [sender.py:send():336] send: run
+2023-02-23 04:02:21,263 INFO    SenderThread:1521452 [dir_watcher.py:__init__():216] watching files in: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files
+2023-02-23 04:02:21,263 INFO    SenderThread:1521452 [sender.py:_start_run_threads():1067] run started: 3winsbew with start time 1677142940.965551
+2023-02-23 04:02:21,263 DEBUG   SenderThread:1521452 [sender.py:send_request():363] send_request: summary_record
+2023-02-23 04:02:21,265 INFO    SenderThread:1521452 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-02-23 04:02:21,267 DEBUG   HandlerThread:1521452 [handler.py:handle_request():144] handle_request: check_version
+2023-02-23 04:02:21,267 DEBUG   SenderThread:1521452 [sender.py:send_request():363] send_request: check_version
+2023-02-23 04:02:21,335 DEBUG   HandlerThread:1521452 [handler.py:handle_request():144] handle_request: run_start
+2023-02-23 04:02:21,345 DEBUG   HandlerThread:1521452 [system_info.py:__init__():31] System info init
+2023-02-23 04:02:21,345 DEBUG   HandlerThread:1521452 [system_info.py:__init__():46] System info init done
+2023-02-23 04:02:21,345 INFO    HandlerThread:1521452 [system_monitor.py:start():151] Starting system monitor
+2023-02-23 04:02:21,345 INFO    SystemMonitor:1521452 [system_monitor.py:_start():116] Starting system asset monitoring threads
+2023-02-23 04:02:21,345 INFO    HandlerThread:1521452 [system_monitor.py:probe():172] Collecting system info
+2023-02-23 04:02:21,345 INFO    SystemMonitor:1521452 [interfaces.py:start():168] Started cpu
+2023-02-23 04:02:21,346 INFO    SystemMonitor:1521452 [interfaces.py:start():168] Started disk
+2023-02-23 04:02:21,346 INFO    SystemMonitor:1521452 [interfaces.py:start():168] Started gpu
+2023-02-23 04:02:21,347 INFO    SystemMonitor:1521452 [interfaces.py:start():168] Started memory
+2023-02-23 04:02:21,347 INFO    SystemMonitor:1521452 [interfaces.py:start():168] Started network
+2023-02-23 04:02:21,691 DEBUG   HandlerThread:1521452 [system_info.py:probe():195] Probing system
+2023-02-23 04:02:21,700 DEBUG   HandlerThread:1521452 [system_info.py:_probe_git():180] Probing git
+2023-02-23 04:02:21,716 DEBUG   HandlerThread:1521452 [system_info.py:_probe_git():188] Probing git done
+2023-02-23 04:02:21,716 DEBUG   HandlerThread:1521452 [system_info.py:probe():241] Probing system done
+2023-02-23 04:02:21,716 DEBUG   HandlerThread:1521452 [system_monitor.py:probe():181] {'os': 'Linux-5.4.0-126-generic-x86_64-with-glibc2.10', 'python': '3.8.5', 'heartbeatAt': '2023-02-23T09:02:21.691164', 'startedAt': '2023-02-23T09:02:20.949448', 'docker': None, 'cuda': None, 'args': ('--batch_size', '1', '--log', 'bs+1+_lr+0.0001+_epoch+100', '--epochs', '100', '--lr', '0.0001'), 'state': 'running', 'program': 'train.py', 'codePath': 'train.py', 'git': {'remote': 'git@github.com:lsl001006/temporal_synhuman.git', 'commit': 'fc1f34020479cc67f4abbb4f057ad5465b627646'}, 'email': '1958698497@qq.com', 'root': '/home/csgrad/xuangong/hmr/temporal_synhuman', 'host': 'deepbull5', 'username': 'xuangong', 'executable': '/home/csgrad/xuangong/miniconda3/bin/python', 'cpu_count': 48, 'cpu_count_logical': 96, 'cpu_freq': {'current': 2917.834500000001, 'min': 1500.0, 'max': 2650.0}, 'cpu_freq_per_core': [{'current': 2894.231, 'min': 1500.0, 'max': 2650.0}, {'current': 2893.205, 'min': 1500.0, 'max': 2650.0}, {'current': 2894.238, 'min': 1500.0, 'max': 2650.0}, {'current': 2894.144, 'min': 1500.0, 'max': 2650.0}, {'current': 3624.68, 'min': 1500.0, 'max': 2650.0}, {'current': 2891.619, 'min': 1500.0, 'max': 2650.0}, {'current': 2887.09, 'min': 1500.0, 'max': 2650.0}, {'current': 2882.783, 'min': 1500.0, 'max': 2650.0}, {'current': 2886.287, 'min': 1500.0, 'max': 2650.0}, {'current': 2884.001, 'min': 1500.0, 'max': 2650.0}, {'current': 2893.856, 'min': 1500.0, 'max': 2650.0}, {'current': 3600.951, 'min': 1500.0, 'max': 2650.0}, {'current': 1978.613, 'min': 1500.0, 'max': 2650.0}, {'current': 2608.503, 'min': 1500.0, 'max': 2650.0}, {'current': 2071.014, 'min': 1500.0, 'max': 2650.0}, {'current': 2762.194, 'min': 1500.0, 'max': 2650.0}, {'current': 2074.842, 'min': 1500.0, 'max': 2650.0}, {'current': 2703.918, 'min': 1500.0, 'max': 2650.0}, {'current': 1496.169, 'min': 1500.0, 'max': 2650.0}, {'current': 1492.681, 'min': 1500.0, 'max': 2650.0}, {'current': 1494.164, 'min': 1500.0, 'max': 2650.0}, {'current': 1492.848, 'min': 1500.0, 'max': 2650.0}, {'current': 1496.356, 'min': 1500.0, 'max': 2650.0}, {'current': 1493.623, 'min': 1500.0, 'max': 2650.0}, {'current': 2889.698, 'min': 1500.0, 'max': 2650.0}, {'current': 2888.734, 'min': 1500.0, 'max': 2650.0}, {'current': 2890.931, 'min': 1500.0, 'max': 2650.0}, {'current': 3298.68, 'min': 1500.0, 'max': 2650.0}, {'current': 2892.077, 'min': 1500.0, 'max': 2650.0}, {'current': 3618.204, 'min': 1500.0, 'max': 2650.0}, {'current': 1494.471, 'min': 1500.0, 'max': 2650.0}, {'current': 1494.569, 'min': 1500.0, 'max': 2650.0}, {'current': 1494.749, 'min': 1500.0, 'max': 2650.0}, {'current': 1494.253, 'min': 1500.0, 'max': 2650.0}, {'current': 1791.99, 'min': 1500.0, 'max': 2650.0}, {'current': 1792.451, 'min': 1500.0, 'max': 2650.0}, {'current': 3618.201, 'min': 1500.0, 'max': 2650.0}, {'current': 2890.502, 'min': 1500.0, 'max': 2650.0}, {'current': 2885.964, 'min': 1500.0, 'max': 2650.0}, {'current': 2886.554, 'min': 1500.0, 'max': 2650.0}, {'current': 2889.279, 'min': 1500.0, 'max': 2650.0}, {'current': 2884.332, 'min': 1500.0, 'max': 2650.0}, {'current': 2888.249, 'min': 1500.0, 'max': 2650.0}, {'current': 2891.152, 'min': 1500.0, 'max': 2650.0}, {'current': 2892.033, 'min': 1500.0, 'max': 2650.0}, {'current': 2884.595, 'min': 1500.0, 'max': 2650.0}, {'current': 2883.421, 'min': 1500.0, 'max': 2650.0}, {'current': 3618.205, 'min': 1500.0, 'max': 2650.0}, {'current': 2891.553, 'min': 1500.0, 'max': 2650.0}, {'current': 2893.716, 'min': 1500.0, 'max': 2650.0}, {'current': 2943.83, 'min': 1500.0, 'max': 2650.0}, {'current': 2893.251, 'min': 1500.0, 'max': 2650.0}, {'current': 3618.204, 'min': 1500.0, 'max': 2650.0}, {'current': 2890.697, 'min': 1500.0, 'max': 2650.0}, {'current': 2892.899, 'min': 1500.0, 'max': 2650.0}, {'current': 2892.611, 'min': 1500.0, 'max': 2650.0}, {'current': 2892.418, 'min': 1500.0, 'max': 2650.0}, {'current': 2887.528, 'min': 1500.0, 'max': 2650.0}, {'current': 2893.087, 'min': 1500.0, 'max': 2650.0}, {'current': 3618.2, 'min': 1500.0, 'max': 2650.0}, {'current': 2077.456, 'min': 1500.0, 'max': 2650.0}, {'current': 2337.571, 'min': 1500.0, 'max': 2650.0}, {'current': 2733.325, 'min': 1500.0, 'max': 2650.0}, {'current': 2026.61, 'min': 1500.0, 'max': 2650.0}, {'current': 2802.626, 'min': 1500.0, 'max': 2650.0}, {'current': 2067.245, 'min': 1500.0, 'max': 2650.0}, {'current': 1491.587, 'min': 1500.0, 'max': 2650.0}, {'current': 1495.446, 'min': 1500.0, 'max': 2650.0}, {'current': 1496.796, 'min': 1500.0, 'max': 2650.0}, {'current': 1496.592, 'min': 1500.0, 'max': 2650.0}, {'current': 1495.954, 'min': 1500.0, 'max': 2650.0}, {'current': 1496.356, 'min': 1500.0, 'max': 2650.0}, {'current': 2889.919, 'min': 1500.0, 'max': 2650.0}, {'current': 2892.672, 'min': 1500.0, 'max': 2650.0}, {'current': 2892.847, 'min': 1500.0, 'max': 2650.0}, {'current': 3358.369, 'min': 1500.0, 'max': 2650.0}, {'current': 2891.064, 'min': 1500.0, 'max': 2650.0}, {'current': 3617.981, 'min': 1500.0, 'max': 2650.0}, {'current': 1493.288, 'min': 1500.0, 'max': 2650.0}, {'current': 1493.8, 'min': 1500.0, 'max': 2650.0}, {'current': 1496.239, 'min': 1500.0, 'max': 2650.0}, {'current': 1494.249, 'min': 1500.0, 'max': 2650.0}, {'current': 1792.975, 'min': 1500.0, 'max': 2650.0}, {'current': 1794.321, 'min': 1500.0, 'max': 2650.0}, {'current': 3615.358, 'min': 1500.0, 'max': 2650.0}, {'current': 2886.131, 'min': 1500.0, 'max': 2650.0}, {'current': 2908.294, 'min': 1500.0, 'max': 2650.0}, {'current': 3173.87, 'min': 1500.0, 'max': 2650.0}, {'current': 2890.72, 'min': 1500.0, 'max': 2650.0}, {'current': 2894.501, 'min': 1500.0, 'max': 2650.0}, {'current': 2891.756, 'min': 1500.0, 'max': 2650.0}, {'current': 2891.768, 'min': 1500.0, 'max': 2650.0}, {'current': 2889.452, 'min': 1500.0, 'max': 2650.0}, {'current': 2889.888, 'min': 1500.0, 'max': 2650.0}, {'current': 2889.613, 'min': 1500.0, 'max': 2650.0}, {'current': 3507.086, 'min': 1500.0, 'max': 2650.0}], 'disk': {'total': 491.082275390625, 'used': 19.53079605102539}, 'gpu': 'NVIDIA RTX A5000', 'gpu_count': 8, 'gpu_devices': [{'name': 'NVIDIA RTX A5000', 'memory_total': 25757220864}, {'name': 'NVIDIA RTX A5000', 'memory_total': 25757220864}, {'name': 'NVIDIA RTX A5000', 'memory_total': 25757220864}, {'name': 'NVIDIA RTX A5000', 'memory_total': 25757220864}, {'name': 'NVIDIA RTX A5000', 'memory_total': 25757220864}, {'name': 'NVIDIA RTX A5000', 'memory_total': 25757220864}, {'name': 'NVIDIA RTX A5000', 'memory_total': 25757220864}, {'name': 'NVIDIA RTX A5000', 'memory_total': 25757220864}], 'memory': {'total': 755.8095016479492}}
+2023-02-23 04:02:21,716 INFO    HandlerThread:1521452 [system_monitor.py:probe():182] Finished collecting system info
+2023-02-23 04:02:21,716 INFO    HandlerThread:1521452 [system_monitor.py:probe():185] Publishing system info
+2023-02-23 04:02:21,716 DEBUG   HandlerThread:1521452 [system_info.py:_save_pip():51] Saving list of pip packages installed into the current environment
+2023-02-23 04:02:21,719 DEBUG   HandlerThread:1521452 [system_info.py:_save_pip():67] Saving pip packages done
+2023-02-23 04:02:21,719 DEBUG   HandlerThread:1521452 [system_info.py:_save_conda():74] Saving list of conda packages installed into the current environment
+2023-02-23 04:02:22,266 INFO    Thread-13 :1521452 [dir_watcher.py:_on_file_created():275] file/dir created: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/conda-environment.yaml
+2023-02-23 04:02:22,267 INFO    Thread-13 :1521452 [dir_watcher.py:_on_file_created():275] file/dir created: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/wandb-summary.json
+2023-02-23 04:02:22,267 INFO    Thread-13 :1521452 [dir_watcher.py:_on_file_created():275] file/dir created: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/requirements.txt
+2023-02-23 04:02:29,120 DEBUG   HandlerThread:1521452 [system_info.py:_save_conda():86] Saving conda packages done
+2023-02-23 04:02:29,124 INFO    HandlerThread:1521452 [system_monitor.py:probe():187] Finished publishing system info
+2023-02-23 04:02:29,268 INFO    WriterThread:1521452 [datastore.py:close():299] close: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/run-3winsbew.wandb
+2023-02-23 04:02:29,272 INFO    Thread-13 :1521452 [dir_watcher.py:_on_file_modified():292] file/dir modified: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/conda-environment.yaml
+2023-02-23 04:02:29,272 INFO    Thread-13 :1521452 [dir_watcher.py:_on_file_created():275] file/dir created: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/wandb-metadata.json
+2023-02-23 04:02:29,331 INFO    SenderThread:1521452 [sender.py:finish():1493] shutting down sender
+2023-02-23 04:02:29,331 INFO    SenderThread:1521452 [dir_watcher.py:finish():362] shutting down directory watcher
+2023-02-23 04:02:30,273 INFO    SenderThread:1521452 [dir_watcher.py:finish():392] scan: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files
+2023-02-23 04:02:30,274 INFO    SenderThread:1521452 [dir_watcher.py:finish():406] scan save: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/requirements.txt requirements.txt
+2023-02-23 04:02:30,274 INFO    SenderThread:1521452 [dir_watcher.py:finish():406] scan save: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/wandb-metadata.json wandb-metadata.json
+2023-02-23 04:02:30,274 INFO    SenderThread:1521452 [dir_watcher.py:finish():406] scan save: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/conda-environment.yaml conda-environment.yaml
+2023-02-23 04:02:30,277 INFO    SenderThread:1521452 [dir_watcher.py:finish():406] scan save: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/config.yaml config.yaml
+2023-02-23 04:02:30,278 INFO    SenderThread:1521452 [dir_watcher.py:finish():406] scan save: /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/wandb-summary.json wandb-summary.json
+2023-02-23 04:02:30,281 INFO    SenderThread:1521452 [file_pusher.py:finish():162] shutting down file pusher
+2023-02-23 04:02:30,281 INFO    SenderThread:1521452 [file_pusher.py:join():167] waiting for file pusher
+2023-02-23 04:02:30,654 INFO    wandb-upload_3:1521452 [upload_job.py:push():138] Uploaded file /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/config.yaml
+2023-02-23 04:02:30,662 INFO    wandb-upload_2:1521452 [upload_job.py:push():138] Uploaded file /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/conda-environment.yaml
+2023-02-23 04:02:30,662 INFO    wandb-upload_4:1521452 [upload_job.py:push():138] Uploaded file /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/wandb-summary.json
+2023-02-23 04:02:30,683 INFO    wandb-upload_1:1521452 [upload_job.py:push():138] Uploaded file /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/wandb-metadata.json
+2023-02-23 04:02:30,854 INFO    wandb-upload_0:1521452 [upload_job.py:push():138] Uploaded file /home/csgrad/xuangong/hmr/temporal_synhuman/wandb/run-20230223_040220-3winsbew/files/requirements.txt
+2023-02-23 04:02:31,373 ERROR   StreamThr :1521452 [internal.py:wandb_internal():175] Thread HandlerThread:
+Traceback (most recent call last):
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/wandb/sdk/internal/internal_util.py", line 49, in run
+    self._run()
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/wandb/sdk/internal/internal_util.py", line 100, in _run
+    self._process(record)
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/wandb/sdk/internal/internal.py", line 280, in _process
+    self._hm.handle(record)
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/wandb/sdk/internal/handler.py", line 136, in handle
+    handler(record)
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/wandb/sdk/internal/handler.py", line 146, in handle_request
+    handler(record)
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/wandb/sdk/internal/handler.py", line 697, in handle_request_run_start
+    self._tb_watcher = tb_watcher.TBWatcher(
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/wandb/sdk/internal/tb_watcher.py", line 120, in __init__
+    wandb.tensorboard.reset_state()
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/wandb/sdk/lib/lazyloader.py", line 60, in __getattr__
+    module = self._load()
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/wandb/sdk/lib/lazyloader.py", line 35, in _load
+    module = importlib.import_module(self.__name__)
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1014, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 991, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 975, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 671, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 783, in exec_module
+  File "<frozen importlib._bootstrap>", line 219, in _call_with_frames_removed
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/wandb/integration/tensorboard/__init__.py", line 5, in <module>
+    from .log import _log, log, reset_state, tf_summary_to_dict  # noqa: F401
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/wandb/integration/tensorboard/log.py", line 35, in <module>
+    Summary = pb.Summary if pb else None
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/importlib/util.py", line 245, in __getattribute__
+    self.__spec__.loader.exec_module(self)
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/tensorboard/compat/proto/summary_pb2.py", line 17, in <module>
+    from tensorboard.compat.proto import tensor_pb2 as tensorboard_dot_compat_dot_proto_dot_tensor__pb2
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/tensorboard/compat/proto/tensor_pb2.py", line 16, in <module>
+    from tensorboard.compat.proto import resource_handle_pb2 as tensorboard_dot_compat_dot_proto_dot_resource__handle__pb2
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/tensorboard/compat/proto/resource_handle_pb2.py", line 16, in <module>
+    from tensorboard.compat.proto import tensor_shape_pb2 as tensorboard_dot_compat_dot_proto_dot_tensor__shape__pb2
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/tensorboard/compat/proto/tensor_shape_pb2.py", line 36, in <module>
+    _descriptor.FieldDescriptor(
+  File "/home/csgrad/xuangong/miniconda3/lib/python3.8/site-packages/google/protobuf/descriptor.py", line 560, in __new__
+    _message.Message._CheckCalledFromGeneratedFile()
+TypeError: Descriptors cannot not be created directly.
+If this call came from a _pb2.py file, your generated code is out of date and must be regenerated with protoc >= 3.19.0.
+If you cannot immediately regenerate your protos, some other possible workarounds are:
+ 1. Downgrade the protobuf package to 3.20.x or lower.
+ 2. Set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python (but this will use pure-Python parsing and will be much slower).
+
+More information: https://developers.google.com/protocol-buffers/docs/news/2022-05-06#python-updates

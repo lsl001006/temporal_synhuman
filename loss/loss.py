@@ -1,6 +1,8 @@
 import logging
 from .mutil_loss import HomoscedasticUncertaintyWeightedMultiTaskLoss
+import torch.distributed as dist
 
+logger = logging.getLogger()
 def Build_Loss(var=False, shapeloss=False, vertloss=True):
     # Initial loss weights - these will be updated during training.
     init_loss_weights = {'verts': 1.0, 
@@ -17,8 +19,8 @@ def Build_Loss(var=False, shapeloss=False, vertloss=True):
 
     if not vertloss:
         del init_loss_weights['verts']
-
-    logging.info(f"Loss weights:  {init_loss_weights}")
+    if dist.get_rank() == 0:
+        logger.info(f"Loss weights:  {init_loss_weights}")
     
     task_criterion = HomoscedasticUncertaintyWeightedMultiTaskLoss(
                                                             init_loss_weights=init_loss_weights,

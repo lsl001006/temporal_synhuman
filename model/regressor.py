@@ -12,24 +12,28 @@ class TemporalEncoder(nn.Module):
     def __init__(
             self,
             n_layers=1,
-            hidden_size=2048,
+            input_size = 2048,
+            hidden_size = 2048,
             add_linear=False,
             bidirectional=False,
             use_residual=True
     ):
         super(TemporalEncoder, self).__init__()
 
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        
         self.gru = nn.GRU(
-            input_size=2048,
+            input_size=input_size,
             hidden_size=hidden_size,
             bidirectional=bidirectional,
             num_layers=n_layers
         )
         self.linear = None
         if bidirectional:
-            self.linear = nn.Linear(hidden_size*2, 2048)
+            self.linear = nn.Linear(hidden_size*2, input_size)
         elif add_linear:
-            self.linear = nn.Linear(hidden_size, 2048)
+            self.linear = nn.Linear(hidden_size, input_size)
         self.use_residual = use_residual
         
     def forward(self, x):
@@ -41,7 +45,7 @@ class TemporalEncoder(nn.Module):
             # import pdb;pdb.set_trace()
             y = self.linear(y.view(-1, y.size(-1))) # [seql*bs,512]
             y = y.view(t,n,f)
-        if self.use_residual and y.shape[-1] == 2048:
+        if self.use_residual and y.shape[-1] == self.input_size:
             y = y + x
         y = y.permute(1,0,2) # TNF -> NTF
         return y
@@ -94,8 +98,9 @@ class SingleInputRegressor(nn.Module):
                                         pool_out=False, 
                                         )
         
-        self.temporal_encoder = TemporalEncoder(n_layers=2, 
-                                                hidden_size=2048, 
+        self.temporal_encoder = TemporalEncoder(n_layers=2,  # 2
+                                                input_size=ief_channel,
+                                                hidden_size=ief_channel, 
                                                 add_linear=True, 
                                                 use_residual=True)
         

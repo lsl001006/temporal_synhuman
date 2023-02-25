@@ -33,7 +33,7 @@ class VisRenderer(P3dRenderer):
         vertices: (bs, nv, 3)
         pred_cam: (bs, 3)
         """
-        unique_verts = [vertices[:,vid].cpu().numpy() for vid in self.to_1vertex_id] #(7829,bs,3)
+        unique_verts = [vertices[:,vid].detach().cpu().numpy() for vid in self.to_1vertex_id] #(7829,bs,3)
         unique_verts = torch.as_tensor(unique_verts).transpose(0,1).to(self.device) #(bs, 7829, 3)
         verts_list = [unique_verts[nb] for nb in range(self.batch_size)] #(bs, 7829, 3)
         #
@@ -92,6 +92,7 @@ class VisMesh():
         self.j2d = None
 
     def extract_batch_vis_idx(self, x):
+        
         assert x.shape[0] == self.input_batch_size
         x = x[self.vis_idx_in_batch]        
         return x 

@@ -30,7 +30,8 @@ def load_ckpt_woSMPL(ckpt_dir, device, epoch=None, loadbest=True):
         ckpt_files = os.listdir(ckpt_dir)
         if len(ckpt_files)==0:
             return {}, None
-        ckpt_epochs = [int(f[5:-4]) for f in ckpt_files] #'epochXXX.tar' -> 'XXX' 
+        # import pdb;pdb.set_trace()
+        ckpt_epochs = [int(f[5:-4]) for f in ckpt_files if f.endswith('.tar')] #'epochXXX.tar' -> 'XXX' 
         epoch = sorted(ckpt_epochs)[-1]    
     ckpt_path = f'{ckpt_dir}/epoch{epoch}.tar'
     if not os.path.exists(ckpt_path):
