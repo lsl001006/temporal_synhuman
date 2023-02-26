@@ -64,7 +64,9 @@ class SingleInputRegressor(nn.Module):
                  itersup=False,
                  reginput_ch=512,
                  reginput_hw=1,
-                 encoddrop=False):
+                 encoddrop=False,
+                 vibe_reg=True,
+                 use_temporal=True):
         """
         :param resnet_in_channels: 1 if input silhouette/segmentation, 1 + num_joints if
         input silhouette/segmentation + joints.
@@ -78,6 +80,8 @@ class SingleInputRegressor(nn.Module):
         self.cam_params, self.pose_params, self.shape_params = [], [], []
         self.reginput_ch = reginput_ch
         self.reginput_hw = reginput_hw
+        self.vibe_reg = vibe_reg
+        self.use_temporal = use_temporal
         #channel
         filter_channels = [512]#[512,128,32,8,2,1]
         if reginput_ch!=512:
@@ -173,29 +177,31 @@ class SingleInputRegressor(nn.Module):
             input_feats = input_feats.view(input_feats.shape[0], input_feats.shape[1],-1) #(bs, ch, hw)
             input_feats = self.reduce_dim(input_feats)[-1]#only use the last one #(bs, ch_target, hw)
             
+        if self.use_temporal:
+            # rearrange input_feats to [bs, seql, feats]
+            input_feats = rearrange(input_feats, '(b1 b2) f1 f2 f3 -> b1 b2 (f1 f2 f3)', b2=configs.SEQLEN)
+            
+            # add temporal encoder FIXME!
+            feats = self.temporal_encoder(input_feats)
+            
+            # rearrange input_feats to [bs*seql, feats]
+            input_feats = rearrange(feats, 'b1 b2 f -> (b1 b2) f')
         
-        # rearrange input_feats to [bs, seql, feats]
-        input_feats = rearrange(input_feats, '(b1 b2) f1 f2 f3 -> b1 b2 (f1 f2 f3)', b2=configs.SEQLEN)
-        
-        # add temporal encoder FIXME!
-        feats = self.temporal_encoder(input_feats)
-        
-        # rearrange input_feats to [bs*seql, feats]
-        input_feats = rearrange(feats, 'b1 b2 f -> (b1 b2) f')
-        
-        # replace ief_module with vibe regressor FIXME!
-        # cam_params, pose_params, shape_params = self.ief_module(input_feats)
         # input_feats:[bs*seql, 512*ch*cw]
-        cam_params, pose_params, shape_params = self.vibe_regressor(input_feats)
-        # import pdb;pdb.set_trace()
-        
-        
+        if self.vibe_reg:        
+            cam_params, pose_params, shape_params = self.vibe_regressor(input_feats)
+        else:
+            if not self.use_temporal:
+                input_feats = rearrange(input_feats, 'b v h w -> b (v h w)')
+            cam_params, pose_params, shape_params = self.ief_module(input_feats)
+            if not self.itersup:
+                return [cam_params[-1]],  [pose_params[-1]],  [shape_params[-1]]
         self.cam_params, 
         self.pose_params, 
         self.shape_params = [], [], []
-        if not self.itersup:
-            return [cam_params[-1]],  [pose_params[-1]],  [shape_params[-1]]
+
         return [cam_params], [pose_params], [shape_params]
+        
 
 
 class MultiScaleRegressor(SingleInputRegressor):

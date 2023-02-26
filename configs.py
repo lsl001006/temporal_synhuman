@@ -1,5 +1,6 @@
 LOG_DIR = '../exp_out/temporal_synhuman/logs'
-CKPT_DIR =  '../exp_out/temporal_synhuman/ckpts'
+CKPT_DIR =  '../exp_out/temporal_synhuman/ckpts' # comment this for testing singleframe results
+# CKPT_DIR='../exp_out/singleframe/ckpts'
 VIS_DIR =  '../exp_out/temporal_synhuman/vis'
 
 ROOT_PATH = '/a2il/data/xuangong/3dhmr'
@@ -13,7 +14,8 @@ VERTEX_TEXTURE_PATH = f'{ROOT_PATH}/additional/vertex_texture.npy'
 CUBE_PARTS_PATH = f'{ROOT_PATH}/additional/cube_parts.npy'
 UV_MAT_PATH =f'{ROOT_PATH}/additional/UV_Processed.mat'
 # ------------------------ Constants ------------------------
-SEQLEN = 16
+# SEQLEN = 16
+SEQLEN = 1
 FOCAL_LENGTH = 5000.
 REGRESSOR_IMG_WH = 256
 MEAN_CAM_T = [0., 0.2, 42.]

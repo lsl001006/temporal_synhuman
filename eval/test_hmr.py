@@ -86,6 +86,7 @@ class testHMRImg():
             return None, None, None, None
         
         proxy_rep = convert_to_proxyfeat_batch(IUV, joints2D)
+        
         #
         if self.vispr and hasattr(self, 'vis'):
             self.vis.iuv = IUV
@@ -96,8 +97,10 @@ class testHMRImg():
                 if torch.tensor(self.regressor.add_channels).bool().any().item():
                     self.regressor.set_align_target_infer(IUV, joints2D)
             
+            # proxy_rep:[bs*seql, 18, 256, 256]
+            
             pred_cam_wp_list, pred_pose_list, pred_shape_list = self.regressor(proxy_rep)
-                    
+            
             _, pred_vertices, pred_joints_all, pred_reposed_vertices, _ = smpl_forward(
                 pred_shape_list[-1], 
                 pred_pose_list[-1],
@@ -111,6 +114,7 @@ class testHMRImg():
 
     def get_target(self, samples_batch):
         if self.withshape:
+            
             target_pose = samples_batch['pose'].to(self.device).float()#bx72
             target_shape = samples_batch['shape'].to(self.device).float()#bx10
             _, target_vertices, joints_all, target_reposed_vertices, _ = smpl_forward(
@@ -139,7 +143,9 @@ class testHMRImg():
             return
         target_vertices, target_reposed_vertices, target_joints_h36mlsp = self.get_target(samples_batch)
         if hasattr(self, 'vis'):
-            self.vis.forward_verts(pred_vertices, target_vertices, pred_cam_wp, samples_batch['n_sample'])
+            self.vis.forward_verts(pred_vertices, pred_joints_h36mlsp, 
+                                   target_vertices, target_joints_h36mlsp, 
+                                   pred_cam_wp, samples_batch['n_sample'])
 
         if self.eval_j14:
             target_joints_h36mlsp = target_joints_h36mlsp[:, LABELCONFIG.J17_TO_J14, :]
@@ -231,7 +237,7 @@ class testHMRImg():
         self.regressor.eval()
         for n_sample, samples_batch in enumerate(dataloader):
             samples_batch['n_sample'] = n_sample
-            print(f'----idx:{n_sample}----')
+            # print(f'----idx:{n_sample}----')
             self.update_metrics_batch(samples_batch, printt=(n_sample%print_freq==0))
         
             

@@ -28,7 +28,9 @@ def Build_Model(batch_size,
                 reginput_ch=512, 
                 reginput_hw=1,  
                 gender='',
-                phase='train'):
+                phase='train',
+                vibe_reg=True,
+                use_temporal=True):
     smpl_model = Build_SMPL(local_rank, batch_size,  gender=gender)
     
     if pr_mode=='bj':
@@ -66,7 +68,9 @@ def Build_Model(batch_size,
                                          itersup=itersup, 
                                          reginput_ch=reginput_ch,
                                          reginput_hw=reginput_hw,
-                                         encoddrop=False)
+                                         encoddrop=False,
+                                         vibe_reg=vibe_reg,
+                                         use_temporal=use_temporal)
     if phase == 'train':
         regressor = torch.nn.parallel.DistributedDataParallel(regressor.to(device), 
                                                           broadcast_buffers=False, 
@@ -75,7 +79,8 @@ def Build_Model(batch_size,
         regressor = regressor.to(device)
 
     num_params = count_parameters(regressor)
-    if dist.get_rank() == 0:
+    # if dist.get_rank() == 0:
+    if True:
         logger.info(f"Regressor model Loaded. {num_params} trainable parameters.")
     
     return regressor, smpl_model

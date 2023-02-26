@@ -21,6 +21,9 @@ def get_arguments():
     parser.add_argument('--cra', action='store_true')
     parser.add_argument('--reg_ch', type=int, default=512) 
     parser.add_argument('--reg_hw', type=int, default=2) #[16,8,4,2,1]
+    parser.add_argument('--use_vibe_reg', action='store_true') # use vibe regressor instead of ief module
+    parser.add_argument('--debugging', action='store_true') # more info for debugging
+    parser.add_argument('--use_temporal', action='store_true') # use the temporal module in regressor
 
     #checkpoints
     parser.add_argument('--ckpt', type=str, default='debug')
@@ -65,7 +68,9 @@ if __name__ == '__main__':
                                         itersup=0, 
                                         reginput_ch=args.reg_ch,
                                         reginput_hw=args.reg_hw,
-                                        phase='test')
+                                        phase='test',
+                                        vibe_reg=args.use_vibe_reg,
+                                        use_temporal=args.use_temporal)
     print('Model initialized')
     # Initialize 
     if test_w_pr:

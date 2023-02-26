@@ -21,6 +21,8 @@ def get_arguments():
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--num_workers', type=int, default=12) #4->8s/iter, 6->7s/iter, 8->6.5s/iter
     parser.add_argument('--debugging', action='store_true') # more info for debugging
+    parser.add_argument('--use_vibe_reg', action='store_true') # use vibe regressor instead of ief module
+    parser.add_argument('--use_temporal', action='store_true') # use the temporal module in regressor
     
     parser.add_argument('--log', type=str, default='debug')
     parser.add_argument('--save_command', action='store_true') # 保存训练sh文件
@@ -101,7 +103,10 @@ if __name__ == '__main__':
                                         itersup=args.itersup, 
                                         reginput_ch=args.reg_ch,
                                         reginput_hw=args.reg_hw,
-                                        phase='train')
+                                        phase='train',
+                                        vibe_reg=args.use_vibe_reg,
+                                        use_temporal=args.use_temporal
+                                        )
     
     # LOSS
     criterion, losses_to_track = Build_Loss(var=args.lossvar, # 是否启用loss变体

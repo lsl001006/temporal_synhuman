@@ -88,7 +88,8 @@ class my_train_rendering():
         # print('Start iteration', datetime.now().strftime("%m%d%H%M%S"))
 
         with torch.no_grad():    
-            # 获取真值        
+            # 获取真值
+            # import pdb;pdb.set_trace()        
             smpl_dict, iuv_dict, joints_dict, vertices_dict, depth_dict = self.renderSyn.render_forward(
                                             samples_batch['pose'].squeeze().to(self.device), #bx16x72 
                                             samples_batch['shape'].squeeze().to(self.device), #bx16x10
@@ -128,6 +129,7 @@ class my_train_rendering():
         pred_pose_list: [(bs*144)] 144=24*6
         pred_shape_list: [(bs*10)]
         """
+        import pdb;pdb.set_trace()
         loop_nlist = np.arange(len(pred_cam_wp_list)).tolist() if is_train else [-1]
         total_loss = 0.
         for index, nl in enumerate(loop_nlist):

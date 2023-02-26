@@ -17,6 +17,8 @@ def smpl_forward(shape, pose, smpl_model=None):
     # 为保证shape维度和pose维度一致，使用将bs和seqlen两个维度合并
     if len(shape.shape) == 3:
         shape = torch.flatten(shape, 0, 1)
+    if len(pose.shape) == 3:
+        pose = torch.flatten(pose, 0, 1)
     
     if pose.shape[-1] == 24*3:
         all_rotmats = batch_rodrigues(pose.contiguous().view(-1, 3))

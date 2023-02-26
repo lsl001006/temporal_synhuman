@@ -134,7 +134,6 @@ class RenderGenerate():
         # print(datetime.now().strftime("%m%d%H%M%S"))
         pose = pose.to(self.device).float()
         shape = shape.to(self.device).float()
-
         if is_train:
             augment_shape, augment_verts, augment_camT, augment_bbox, augment_proxy = True, True, False, True, True
         else:
@@ -181,7 +180,10 @@ class RenderGenerate():
                 iuv_map, joints2D=joints2d_coco, depth_map=depth_map, normal_map=normal_map)
                 
         # print('crop', datetime.now().strftime("%m%d%H%M%S"))
+        print(f'iuv_map:{iuv_map.shape}\njoints2d_coco:{joints2d_coco.shape}')
+        import pdb;pdb.set_trace()
 
+        
         # saveKPIUV(joints2d_coco, iuv_map,rootpath='vis2')
          
         #CHECK OCCLUSION BEFORE PROXY AUGMENT
@@ -216,3 +218,16 @@ class RenderGenerate():
         # import pdb;pdb.set_trace()
         
         return smpl_dict, iuv_dict, joints_dict, vertices_dict, depth_dict
+
+def visualize_joints_iuvmap(joints2d_coco, iuv_map, save_path=configs.VIS_DIR):
+    """visualize joints and iuvmap of a set of images
+
+    Args:
+        joints2d_coco (_type_): joints keypoints [bs*seql, 17, 2]
+        iuv_map (_type_): iuv masks [bs*seql, 256, 256, 3]
+        save_path (_type_, optional): path to save visualization results. Defaults to configs.VIS_DIR.
+    """
+    # 选取1个batch的数据
+    joints = rearrange(joints2d_coco, '(b s) c d -> b s c d', s=configs.SEQLEN)[0]
+    iuvmap = rearrange(iuv_map, '(b s) h w c -> b s h w c', s=configs.SEQLEN)[0]
+    

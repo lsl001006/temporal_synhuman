@@ -110,7 +110,10 @@ class VisMesh():
             image =  body_mask*image+(1-body_mask)*self.crop_img
         return image
 
-    def forward_verts(self, pred_verts, target_verts, pred_cam_wp, n_batch): 
+    def forward_verts(self, pred_verts, pred_j3d,
+                      target_verts, target_j3d,
+                      pred_cam_wp, n_batch): 
+        
         # bs of last batch < defined batch_size
         if pred_verts.shape[0] != self.input_batch_size:
             return
@@ -121,14 +124,26 @@ class VisMesh():
         pred_cam_wp = self.extract_batch_vis_idx(pred_cam_wp)
         
         meshimg, reproj_IUV = self.renderer.forward(pred_verts, pred_cam_wp, key='pred')
+        # vis
+        ori_iuv_mesh_pred = np.concatenate([self.crop_img[0], (reproj_IUV[0]*255).astype('uint'), meshimg[0]], axis=1)
+        # cv2.imwrite('./vis/Pred_ori_iuv_mesh.jpg', ori_iuv_mesh_pred)
         meshimg = self.fuse_img_batch(meshimg, reproj_IUV[:,:,:,0])
+        # cv2.imwrite('./vis/afterfuse_meshimg.jpg', meshimg[0])
+        
         
         #if GT mesh is valid
         if target_verts is not None:
             target_verts = self.extract_batch_vis_idx(target_verts)
             meshimg2, reproj_IUV = self.renderer.forward(target_verts, pred_cam_wp, key='gt')
             meshimg2 = self.fuse_img_batch(meshimg2, reproj_IUV[:,:,:,0])
+            # vis
+            ori_iuv_mesh_gt = np.concatenate([self.crop_img[0], (reproj_IUV[0]*255).astype('uint'), meshimg2[0]], axis=1)
+            # cv2.imwrite('./vis/GT_ori_iuv_mesh.jpg', ori_iuv_mesh_gt)
+            
             meshimg = np.concatenate([meshimg, meshimg2], axis=2) #(bs, h, 2w, 3)
+            
+        #if GT j2d is valid TODO
+        
 
         # if input iuv/j2d is valid
         if self.iuv is not None:
@@ -137,12 +152,19 @@ class VisMesh():
             iuvimg = (iuvimg*255).astype('uint8')
             iuvimg = self.fuse_img_batch(iuvimg, iuv[:,:,:,0].cpu().numpy())
             meshimg = np.concatenate([iuvimg, meshimg], axis=2) 
+            # cv2.imwrite('./vis/iuv.jpg', iuvimg[0])
 
         if self.j2d is not None:
             j2d = self.extract_batch_vis_idx(self.j2d)
             j2dimg = draw_j2d_batch(j2d.cpu().numpy(), self.crop_img, addText=False, 
                                     H=configs.REGRESSOR_IMG_WH, W=configs.REGRESSOR_IMG_WH)
             meshimg = np.concatenate([j2dimg, meshimg], axis=2) 
+            # cv2.imwrite('./vis/joints.jpg', j2dimg[0])
+        
+        ori_iuv_j2d = np.concatenate([self.crop_img[0], iuvimg[0], j2dimg[0]], axis=1)
+        img = np.concatenate([ori_iuv_mesh_pred, ori_iuv_mesh_gt, ori_iuv_j2d], axis=0)
+        cv2.imwrite('./vis/pred_gt_truth.jpg', img)
+        import pdb;pdb.set_trace()
 
         for b in range(self.render_batch_size):
             org_index_in_batch = self.vis_idx_in_batch[b]
